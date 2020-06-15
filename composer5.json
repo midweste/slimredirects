@@ -16,7 +16,7 @@
   "require-dev": {},
   "autoload": {
     "psr-4": {
-      "MidwestE\\SlimRedirects\\": "src/"
+      "Midweste\\SlimRedirects\\": "src/"
     }
   },
   "autoload-dev": {

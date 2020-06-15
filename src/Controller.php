@@ -1,6 +1,6 @@
 <?php
 
-namespace MidwestE\SlimRedirects;
+namespace Midweste\SlimRedirects;
 
 use Symfony\Component\HttpFoundation\Request;
 

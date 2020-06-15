@@ -1,2 +1,2 @@
 #!/bin/bash
-lando php bin/generate --author="midweste" --project="slimredirects" --camelcase="SlimRedirects" --description="Redirect a request to a different domain. Supports wildcard, regex, http to https redirection." --namespace="MidwestE\SlimRedirects"
+lando php bin/generate --author="midweste" --project="slimredirects" --camelcase="SlimRedirects" --description="Redirect a request to a different domain. Supports wildcard, regex, http to https redirection." --namespace="Midweste\SlimRedirects"

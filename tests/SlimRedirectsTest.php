@@ -1,6 +1,6 @@
 <?php
 
-use MidwestE\SlimRedirects\Controller;
+use Midweste\SlimRedirects\Controller;
 use PHPUnit\Framework\TestCase;
 
 class SlimRedirectsTest extends TestCase
