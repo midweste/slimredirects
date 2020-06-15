@@ -1,0 +1,122 @@
+{
+
+    "schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "title": "Advocacy Signup",
+        "required": [
+        ],
+        "properties": {
+            "language": {
+                "type": "string",
+                "title": "Language",
+                "description": "Thank you for your interest in our Campaign; if <language> isn’t your language, type (?) to see what other languages we support",
+                "enum": [
+                    "English",
+                    "Spanish"
+                ]
+            },
+            "agreement-13": {
+                "type": "string",
+                "title": "Opt-In",
+                "description": "Do you want to sign the petition, please note you must be over 18 years old to sign this petition. Type (Y) for yes or (N) for no",
+                "enum": [
+                    "Y",
+                    "N"
+                ],
+                "validate": {
+                    "uri": "https://example.com/api/formbot/1/field/select/validate/true",
+                    "fail": "Invalid select input.",
+                    "retry": true,
+                    "method": "POST"
+                },
+                "translations": {
+                    "English": {
+                        "title": "Language",
+                        "enum": [
+                            "English",
+                            "Spanish"
+                        ],
+                        "validate": {
+                            "fail": "Invalid!!"
+                        }
+                    },
+                    "Espanol": {
+                        "title": "Languageo",
+                        "enum": [
+                            "Engleisho",
+                            "Espanolo"
+                        ],
+                        "validate": {
+                            "fail": "Invalido!!"
+                        }
+                    }
+                },
+                "twilio": {
+                    "type": "Twilio.ALPHANUMERIC"
+                }
+            },
+            "firstName": {
+                "type": "string",
+                "title": "First Name",
+                "description": "What is your first name?",
+                "pattern": "^(.*)$"
+            },
+            "lastName": {
+                "type": "string",
+                "title": "Last Name",
+                "description": "What is your last (family) name?",
+                "pattern": "^(.*)$"
+            },
+            "email": {
+                "type": "string",
+                "title": "Email Address",
+                "description": "What is your email address?",
+                "pattern": "^(.*)$"
+            },
+            "country": {
+                "type": "string",
+                "title": "Country",
+                "description": "Can you please enter your country (e.g. United Kingdom)",
+                "pattern": "^(.*)$"
+            },
+            "zip": {
+                "type": "string",
+                "title": "Zip Code",
+                "description": "Can you please enter your postal or zip code (e.g. 1233245 or DG19DF)",
+                "pattern": "^(.*)$"
+            },
+            "portal": {
+                "type": "string",
+                "title": "Portal",
+                "description": "Would you like to set up a portal to track your influence within this campaign? (Y) for yes or (N) for no",
+                "enum": [
+                    "Y",
+                    "N"
+                ]
+            },
+            "agreement-email": {
+                "type": "string",
+                "title": "Communications",
+                "description": "Would you like to receive communications from ADRA? (Y) for yes or (N) for no",
+                "enum": [
+                    "Y",
+                    "N"
+                ]
+            }
+        },
+        "definitions": {
+        }
+    },
+    "form": [
+        "language",
+        "agreement-13",
+        "firstName",
+        "lastName",
+        "email",
+        "country",
+        "zip",
+        "portal",
+        "agreement-email"
+    ]
+}

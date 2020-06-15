@@ -1,0 +1,44 @@
+name: slimredirects
+phpversions: 5.3 5.4 5.5 5.6 7.0 7.1 7.2 7.3 7.4
+services:
+  php:
+    type: php:7.4
+    via: cli
+    xdebug: true
+  php7:
+    type: php:7.1
+    via: cli
+    xdebug: true
+tooling:
+  composer:
+    service: php
+    description: Run composer commands on php 7.4
+    cmd: composer --ansi
+  composer7:
+    service: php7
+    description: Run composer commands on php 7.1
+    cmd: composer --ansi
+  php:
+    service: php
+    cmd: php
+  php7:
+    service: php7
+    cmd: php
+  phpunit-update:
+    service: php
+    description: Install/Update phpunit versions
+    cmd:
+      - wget -O ./phpunit https://phar.phpunit.de/phpunit-9.phar && chmod +x ./phpunit && ./phpunit --version
+      - wget -O ./phpunit7 https://phar.phpunit.de/phpunit-7.phar && chmod +x ./phpunit7 && ./phpunit7 --version
+  phpunit:
+    service: php
+    description: Run phpunit 7.4 testing
+    cmd:
+      - rm -rf ./vendor && rm -f composer.lock && composer install
+      - php ./phpunit --verbose --configuration ./phpunit.xml
+  phpunit7:
+    service: php7
+    description: Run phpunit 7.1 testing
+    cmd:
+      - rm -rf ./vendor && rm -f composer.lock && composer install
+      - php ./phpunit7 --verbose --configuration ./phpunit7.xml

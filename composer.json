@@ -1,0 +1,33 @@
+{
+  "name": "midweste/slimredirects",
+  "description": "Redirect a request to a different domain. Supports wildcard, regex, http to https redirection.",
+  "homepage": "https://github.com/midweste/slimredirects",
+  "license": "MIT",
+  "keywords": [
+    "php",
+    "boilerplate",
+    "slimredirects"
+  ],
+  "authors": [
+    {
+      "name": "midweste",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php": ">=7.1.0"
+  },
+  "require-dev": {
+    "phing/phing": "^2.16",
+    "squizlabs/php_codesniffer": "^3.2.0",
+    "infection/infection": "^0.13.4"
+  },
+  "autoload": {
+    "psr-4": {
+      "MidwestE\SlimRedirects\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {}
+  }
+}
