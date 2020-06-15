@@ -17,7 +17,7 @@ class Redirect
     {
     }
 
-    public static function factory(array $values = []): SlimRedirect
+    public static function factory(array $values = []): Redirect
     {
         $called = get_called_class();
         $self = new $called;
