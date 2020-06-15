@@ -15,7 +15,8 @@
     }
   ],
   "require": {
-    "php": ">=7.1.0"
+    "php": ">=7.1.0",
+    "symfony/http-foundation": "^5.0"
   },
   "require-dev": {
     "phing/phing": "^2.16",
@@ -24,7 +25,7 @@
   },
   "autoload": {
     "psr-4": {
-      "MidwestE\SlimRedirects\\": "src/"
+      "MidwestESlimRedirects\\": "src/"
     }
   },
   "autoload-dev": {

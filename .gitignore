@@ -1,0 +1,10 @@
+/ignored
+/nbproject
+/vendor
+/composer.lock
+/.history
+/.phpunit.result.cache
+/.php_cs.cache
+/tests/results
+/tests/results7
+/build
