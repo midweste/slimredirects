@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit backupGlobals="false"
+         backupStaticAttributes="false"
+         bootstrap="phpunit.php"
+         colors="true"
+         convertErrorsToExceptions="true"
+         convertNoticesToExceptions="true"
+         convertWarningsToExceptions="true"
+         processIsolation="false"
+         stopOnFailure="true">
+  <testsuites>
+    <testsuite name="Unit">
+      <directory suffix="Test.php">./tests</directory>
+    </testsuite>
+  </testsuites>
+  <filter>
+    <whitelist processUncoveredFilesFromWhitelist="true">
+      <directory suffix=".php">./src</directory>
+      <exclude>
+        <directory suffix=".php">./vendor/*</directory>
+      </exclude>
+    </whitelist>
+  </filter>
+  <php>
+    <server name="HTTP_HOST" value="testing"/>
+    <env name="REPORTS_DIR" value="./tests/results5" force="true"/>
+    <server name="SERVER_VAR" value="4"/>
+  </php>
+  <logging>
+    <log type="coverage-html" target="./tests/results5/report" lowUpperBound="35" highLowerBound="70"/>
+    <log type="coverage-clover" target="./tests/results5/coverage.xml"/>
+    <log type="coverage-php" target="./tests/results5/coverage.serialized"/>
+    <log type="coverage-text" target="php://stdout" showUncoveredFiles="false"/>
+    <log type="junit" target="./tests/results5/logfile.xml"/>
+    <log type="testdox-html" target="./tests/results5/testdox.html"/>
+    <log type="testdox-text" target="./tests/results5/testdox.txt"/>
+  </logging>
+</phpunit>
+

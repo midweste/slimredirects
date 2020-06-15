@@ -1,10 +1,13 @@
 /ignored
 /nbproject
 /vendor
+/vendor7
+/vendor5
 /composer.lock
 /.history
 /.phpunit.result.cache
 /.php_cs.cache
 /tests/results
 /tests/results7
+/tests/results5
 /build

@@ -4,7 +4,6 @@ namespace MidwestE\SlimRedirects;
 
 use Symfony\Component\HttpFoundation\Request;
 
-
 class Controller
 {
 
@@ -17,8 +16,8 @@ class Controller
 
     public function __construct()
     {
-        $this->request = \Symfony\Component\HttpFoundation\Request::createFromGlobals();
-        //$this->request = $this->createRequest();
+        //$this->request = \Symfony\Component\HttpFoundation\Request::createFromGlobals();
+        $this->request = $this->createRequest();
 
         //$this->start = microtime(true);
         $this->setTypeHandler('path', function (string $destination) {
