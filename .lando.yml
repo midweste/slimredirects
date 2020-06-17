@@ -6,11 +6,7 @@ services:
     via: cli
     xdebug: true
   php7:
-    type: php:7.1
-    via: cli
-    xdebug: true
-  php5:
-    type: php:5.6
+    type: php:7.2
     via: cli
     xdebug: true
 tooling:
@@ -20,11 +16,7 @@ tooling:
     cmd: composer --ansi
   composer7:
     service: php7
-    description: Run composer commands on php 7.1
-    cmd: composer --ansi
-  composer5:
-    service: php7
-    description: Run composer commands on php 7.1
+    description: Run composer commands on php 7.2
     cmd: composer --ansi
   php:
     service: php
@@ -32,16 +24,12 @@ tooling:
   php7:
     service: php7
     cmd: php
-  php5:
-    service: php5
-    cmd: php
   phpunit-update:
     service: php
     description: Install/Update phpunit versions
     cmd:
       - wget -O ./phpunit https://phar.phpunit.de/phpunit-9.phar && chmod +x ./phpunit && ./phpunit --version
-      - wget -O ./phpunit7 https://phar.phpunit.de/phpunit-7.phar && chmod +x ./phpunit7 && ./phpunit7 --version
-      - wget -O ./phpunit5 https://phar.phpunit.de/phpunit-5.phar && chmod +x ./phpunit5 && ./phpunit5 --version
+      - wget -O ./phpunit8 https://phar.phpunit.de/phpunit-8.phar && chmod +x ./phpunit8 && ./phpunit8 --version
   phpunit:
     service: php
     description: Run phpunit 7.4 testing
@@ -50,13 +38,7 @@ tooling:
       - php ./phpunit --verbose --configuration ./phpunit.xml
   phpunit7:
     service: php7
-    description: Run phpunit 7.1 testing
+    description: Run phpunit 7.2 testing
     cmd:
       - export COMPOSER_VENDOR_DIR=vendor7 && export COMPOSER="./composer7.json" && composer install
-      - php ./phpunit7 --verbose --configuration ./phpunit7.xml
-  phpunit5:
-    service: php5
-    description: Run phpunit 5.6 testing
-    cmd:
-      - export COMPOSER_VENDOR_DIR=vendor5 && export COMPOSER="./composer5.json" && composer install
-      - php ./phpunit5 --verbose --configuration ./phpunit5.xml
+      - php ./phpunit8 --verbose --configuration ./phpunit7.xml
