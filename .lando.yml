@@ -12,33 +12,27 @@ services:
 tooling:
   composer:
     service: php
-    description: Run composer commands on php 7.4
-    cmd: composer --ansi
+    description: Run composer commands on php latest
+    cmd: composer
   composer7:
     service: php7
     description: Run composer commands on php 7.2
-    cmd: composer --ansi
+    cmd: composer
   php:
     service: php
     cmd: php
   php7:
     service: php7
     cmd: php
-  phpunit-update:
-    service: php
-    description: Install/Update phpunit versions
-    cmd:
-      - wget -O ./phpunit https://phar.phpunit.de/phpunit-9.phar && chmod +x ./phpunit && ./phpunit --version
-      - wget -O ./phpunit8 https://phar.phpunit.de/phpunit-8.phar && chmod +x ./phpunit8 && ./phpunit8 --version
   phpunit:
     service: php
-    description: Run phpunit 7.4 testing
+    description: Run phpunit latest testing
     cmd:
-      - export COMPOSER_VENDOR_DIR=vendor && export COMPOSER="./composer.json" && composer install
-      - php ./phpunit --verbose --configuration ./phpunit.xml
+      - cd /app && export COMPOSER_VENDOR_DIR=vendor && export COMPOSER="./composer.json" && composer install
+      - cd /app && php ./vendor/bin/phpunit --verbose --configuration ./phpunit.xml
   phpunit7:
     service: php7
     description: Run phpunit 7.2 testing
     cmd:
-      - export COMPOSER_VENDOR_DIR=vendor7 && export COMPOSER="./composer7.json" && composer install
-      - php ./phpunit8 --verbose --configuration ./phpunit7.xml
+      - cd /app && export COMPOSER_VENDOR_DIR=vendor7 && export COMPOSER="./composer7.json" && composer install
+      - cd /app && php ./vendor7/bin/phpunit --verbose --configuration ./phpunit7.xml

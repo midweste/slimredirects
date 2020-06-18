@@ -1,13 +1,13 @@
 <?php
 
 
-//$phpVersion = phpversion();
-if (version_compare(PHP_VERSION, '7.2.0', '>=')) {
+$phpVersion = phpversion();
+if (version_compare($phpVersion, '7.4.0', '>=')) {
     require_once __DIR__ . '/vendor/autoload.php';
-} elseif (version_compare(PHP_VERSION, '7.2.0', '<') && version_compare(PHP_VERSION, '5.7.0', '>')) {
+} elseif (version_compare($phpVersion, '7.2.0', '>=')) {
     require_once __DIR__ . '/vendor7/autoload.php';
 } else {
-    require_once __DIR__ . '/vendor5/autoload.php';
+    throw new \Exception('Unsupported php version for testing');
 }
 
 if (interface_exists('\PHPUnit\Runner\BeforeFirstTestHook')) {
@@ -27,7 +27,7 @@ $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
 $_SERVER['REQUEST_METHOD'] = 'GET';
 $_SERVER['SERVER_NAME'] = NULL;
 $_SERVER['SERVER_SOFTWARE'] = NULL;
-$_SERVER['HTTP_USER_AGENT'] = NULL;
+$_SERVER['HTTP_USER_AGENT'] = 'phpunit';
 $base_url = $_SERVER['SERVER_PROTOCOL'] . '://' . $_SERVER['HTTP_HOST'];
 
 //define('DRUPAL_ROOT', __DIR__ . '/../web');
