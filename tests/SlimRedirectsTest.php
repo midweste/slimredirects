@@ -66,9 +66,9 @@ class SlimRedirectsTest extends TestCase
         $request = $this->mockRequest($uri, $server);
         $controller = new Controller($request, $this->mockResponse(), $redirects, $options);
         $response = $controller->redirectProcess();
-        $responseStatus = (int) $response->getStatusCode();
-        $location = ($response->hasHeader('location')) ? (new UriFactory())->createUri($response->getHeaderLine('location')) : null;
-        $locationUri = (string) $location;
+        $responseStatus = ($response) ? $response->getStatusCode() : null;
+        $location = (!is_null($response) && $response->hasHeader('location')) ? (new UriFactory())->createUri($response->getHeaderLine('location')) : null;
+        $locationUri = (!is_null($location)) ? (string) $location : null;
 
         $result = new \stdClass();
         $result->request = $request;
@@ -118,6 +118,21 @@ class SlimRedirectsTest extends TestCase
         $result = $this->slimRedirect('http://localhost/', [$rule], $options);
         $this->assertEquals($result->locationUri->getScheme(), 'https');
         $this->assertEquals($result->responseStatus, $rule['httpStatus']);
+    }
+
+    public function testRedirectNonMatch()
+    {
+        $rule = [
+            "id" => "1",
+            "source" => "/",
+            "type" => "path",
+            "destination" => "/root",
+            "httpStatus" => 302,
+            "active" => 1
+        ];
+        $result = $this->slimRedirect('https://localhost/nomatch?query=string', [$rule]);
+        $this->assertEquals($result->responseStatus, null);
+        $this->assertEquals($result->location, null);
     }
 
     public function testRedirectRootRedirect()
