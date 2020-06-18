@@ -157,11 +157,11 @@ class SlimRedirectsTest extends TestCase
             "source" => "/wild/*/card",
             "type" => "path",
             "destination" => "/wildcard/*",
-            "httpStatus" => 302,
+            "httpStatus" => 301,
             "active" => 1
         ];
         $result = $this->slimRedirect('https://localhost/wild/test/card?query=string', [$rule]);
-        $this->assertEquals($result->locationUri->getScheme(), 'https');
         $this->assertEquals($result->responseStatus, $rule['httpStatus']);
+        $this->assertEquals($result->location, 'https://localhost/wildcard/test?query=string');
     }
 }
