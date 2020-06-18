@@ -2,9 +2,7 @@
 
 namespace Midweste\SlimRedirects;
 
-use Symfony\Component\HttpFoundation\Request;
-
-class Redirect
+class RedirectRule
 {
     private $id = null;
     private $source = '';
@@ -17,11 +15,11 @@ class Redirect
     {
     }
 
-    public static function factory(array $values = []): Redirect
+    public static function factory($values = []): RedirectRule
     {
         $called = get_called_class();
         $self = new $called;
-        foreach ($values as $key => $value) {
+        foreach ((object) $values as $key => $value) {
             if (property_exists($self, $key)) {
                 $self->{"set$key"}($value);
             }

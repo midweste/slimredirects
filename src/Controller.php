@@ -2,51 +2,43 @@
 
 namespace Midweste\SlimRedirects;
 
-use Symfony\Component\HttpFoundation\Request;
+use Psr\Http\Message\UriInterface as Uri;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Zend\HttpHandlerRunner\Emitter\SapiEmitter;
 
+/**
+ * https://github.com/php-fig/http-message/blob/master/docs/PSR7-Interfaces.md
+ */
 class Controller
 {
-
-    private $start;
     protected $excludes = [];
     protected $hooks = [];
-    protected $table = 'wp_lecm_rewrite';
-    protected $forceHttps = false;
+    protected $options = [
+        'enabled' => true,
+        'forcehttps' => false,
+        'wildcard' => true,
+    ];
+    protected $redirects = [];
     protected $request = null;
+    protected $response = null;
 
-    public function __construct()
+    public function __construct(Request $request, Response $response, array $redirects, array $options = [])
     {
         //$this->request = \Symfony\Component\HttpFoundation\Request::createFromGlobals();
-        $this->request = $this->createRequest();
+        //$this->request = $this->createRequest();
+        $this->setResponse($response);
+        $this->setRequest($request);
+        $this->setRedirects($redirects);
+        $this->setOptions($options);
 
-        //$this->start = microtime(true);
+        // built in handlers
         $this->setTypeHandler('path', function (string $destination) {
             return $destination;
         });
         $this->setTypeHandler('domain', function (string $destination) {
             return $destination;
         });
-    }
-
-    private function createRequest(): object
-    {
-        $request = [
-            'scheme' => '',
-            'host' => '',
-            'port' => 80,
-            'user' => '',
-            'pass' => '',
-            'path' => '',
-            'query' => '',
-            'fragment' => '',
-        ];
-
-        $scheme = ($this->isHttps()) ? 'https' : 'http';
-        $absUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-        //$absUrl = 'http://username:password@tcbwoo.lndo.site:80/path?arg=value#anchor';
-        $parsed = parse_url($absUrl);
-        $request = array_replace($request, $parsed);
-        return (object) $request;
     }
 
     public static function instance()
@@ -61,61 +53,170 @@ class Controller
         return $self;
     }
 
-    public function getTable(): string
+    public function getExcludes(): array
     {
-        return $this->table;
+        return $this->excludes;
     }
 
-    public function setTable(string $table): self
+    protected function setExcludes(array $excludes): self
     {
-        $this->table = $table;
+        $this->excludes = $excludes;
         return $this;
     }
 
-    public function getForceHttps(): bool
+    public function getHooks(): array
     {
-        return $this->forceHttps;
+        return $this->hooks;
     }
 
-    public function setForceHttps(bool $https): self
+    private function getHook(string $hook): callable
     {
-        $this->forceHttps = $https;
-        return $this;
-    }
-
-    private function sqlMap(array $items = [], string $enclosed = '`'): string
-    {
-        if (empty($items)) {
-            return '';
+        if (!$this->hasHook($hook)) {
+            throw new \Exception(sprintf('Could not retrieve hook: %s', $hook));
         }
-        $mapped = $enclosed . implode($enclosed . ',' . $enclosed, array_map('esc_sql', $items)) . $enclosed;
-        return $mapped;
+        return $this->hooks[$hook];
     }
 
-    protected function getRedirectsAll(?int $active = null, array $fields = [], array $types = []): array
+    public function setHooks(array $hooks): self
     {
-        global $wpdb;
-        $fieldSql = (empty($fields)) ? '*' : $this->sqlMap($fields);
-        $sql = sprintf('SELECT %s FROM `%s` WHERE 1 = 1', $fieldSql, $this->getTable());
-        $sql .= (is_int($active)) ? sprintf(' AND `active` = %d', $active) : '';
-        $sql .= (!empty($types)) ? ' AND `type` IN (' . $this->sqlMap($types, "'") . ')' : '';
-        $sql .= ' ORDER BY type, source';
-        $redirects = $wpdb->get_results($sql, ARRAY_A);
-        $keyed = [];
+        foreach ($hooks as $hook => $callable) {
+            $this->setHook($hook, $callable);
+        }
+        return $this;
+    }
+
+    public function setHook(string $hook, callable $callable)
+    {
+        $this->hooks[$hook] = $callable;
+        return $this;
+    }
+
+    public function hasHook(string $hook): bool
+    {
+        return isset($this->hooks[$hook]);
+    }
+
+    public function getOptions(): array
+    {
+        return $this->options;
+    }
+
+    public function getOption(string $option)
+    {
+        if (!isset($this->getOptions()[$option])) {
+            throw new \Exception(sprintf('Could not retrive option: %s', $option));
+        }
+        return $this->options[$option];
+    }
+
+    protected function setOptions(array $options = []): self
+    {
+        $this->options = \array_replace_recursive($this->options, $options);
+        return $this;
+    }
+
+    public function getRedirects(): array
+    {
+        return $this->redirects;
+    }
+
+    protected function setRedirects(array $redirects): self
+    {
+        $array = [];
         foreach ($redirects as $redirect) {
-            $keyed[$redirect['source']] = SlimRedirect::factory($redirect);
+            $r = ($redirect instanceof RedirectRule) ? $redirect : RedirectRule::factory($redirect);
+            $array[$r->getSource()] = $r;
         }
-        return $keyed;
+        $this->redirects = $array;
+        return $this;
     }
 
-    protected function getRedirectsSource(): array
+    public function getRequest(): Request
     {
-        return $this->getRedirectsAll(1, ['source'], $this->getTypeHandlerNames());
+        return $this->request;
     }
 
-    protected function getRedirects(): array
+    protected function setRequest(Request $request): self
     {
-        return $this->getRedirectsAll(1, [], $this->getTypeHandlerNames());
+        $this->request = $request;
+        return $this;
+    }
+
+    public function getResponse(): Response
+    {
+        return $this->response;
+    }
+
+    protected function setResponse(Response $response): self
+    {
+        $this->response = $response;
+        return $this;
+    }
+
+    public function getTypeHandlers(): array
+    {
+        return $this->handlers;
+    }
+
+    protected function getTypeHandlerNames(): array
+    {
+        return array_keys($this->getTypeHandlers());
+    }
+
+    public function hasTypeHandler(string $type): bool
+    {
+        return isset($this->handlers[$type]) && is_callable($this->handlers[$type]);
+    }
+
+    public function getTypeHandler(string $type): callable
+    {
+        if (!$this->hasTypeHandler($type)) {
+            throw new \Exception(sprintf('No redirect handler for type: %s', $type));
+        }
+        return $this->handlers[$type];
+    }
+
+    public function setTypeHandler(string $type, callable $callable): self
+    {
+        $this->handlers[$type] = $callable;
+        return $this;
+    }
+
+    /**
+     * Main redirect methods
+     */
+
+
+    public function isRequestHttps(Uri $uri): bool
+    {
+        return ($uri->getScheme() == 'https') ? true : false;
+    }
+
+    public function getQuerystringWithFragment(): string
+    {
+        $uri = $this->getRequest()->getUri();
+        $query = $uri->getQuery();
+        $fragment = $uri->getFragment();
+
+        $query = (!empty($query)) ? '?' . $query : '';
+        $fragment = (!empty($fragment)) ? '#' . $fragment : '';
+        return $query . $fragment;
+    }
+
+    protected function getRedirectsFiltered(?bool $active = null, ?array $types = []): array
+    {
+        $redirects = [];
+        $handlers = (!empty($types)) ? $types : $this->getTypeHandlerNames();
+        foreach ($this->getRedirects() as $source => $redirect) {
+            if (is_bool($active) && $redirect->getActive() <> $active) {
+                continue;
+            }
+            if (!empty($types) && !in_array($redirect->getType(), $handlers)) {
+                continue;
+            }
+            $redirects[$source] = $redirect;
+        }
+        return $redirects;
     }
 
     protected function parseDestination(string $destination): string
@@ -137,71 +238,37 @@ class Controller
         return $replaced;
     }
 
-    public function setExcludes(array $excludes): self
+    public function redirectProcess(): ?Response
     {
-        $this->excludes = $excludes;
-        return $this;
-    }
+        $redirects = $this->getRedirectsFiltered(true);
+        $redirectUri = new RedirectUri($this->getRequest()->getUri(), $this->getResponse()->getStatusCode());
+        $requestPath = urldecode($redirectUri->getUri()->getPath());
 
-    public function getExcludes(): array
-    {
-        return $this->excludes;
-    }
-
-    public function setTypeHandler(string $type, callable $callable): self
-    {
-        $this->handlers[$type] = $callable;
-        return $this;
-    }
-
-    public function getTypeHandler(string $type): callable
-    {
-        if (!isset($this->handlers[$type]) || !is_callable(($this->handlers[$type]))) {
-            throw new \Exception(sprintf('No redirect handler for type: %s', $type));
-        }
-        return $this->handlers[$type];
-    }
-
-    public function getTypeHandlerNames(): array
-    {
-        return array_keys($this->getTypeHandlers());
-    }
-
-    public function getTypeHandlers(): array
-    {
-        return $this->handlers;
-    }
-
-    public function getRequest()
-    {
-        return $this->request;
-    }
-
-    public function redirect(): void
-    {
-        $this->start = microtime(true);
-
-        $https = $this->getForceHttps();
-        if ($https === true) {
-            $this->redirectToHttps();
+        if ($this->getOption('enabled') === false) {
+            return null;
         }
 
-        $requestPath = urldecode(rtrim($this->getRequest()->path, '/'));
-        if (in_array($requestPath, $this->getExcludes())) {
-            return;
+        if ($this->getOption('forcehttps') && $redirectUri->getScheme() !== 'https') {
+            $redirectUri = $redirectUri->withScheme('https')->withStatusCode(302);
+            return $redirectUri->createResponse($redirectUri);
         }
 
-        $redirects = $this->getRedirects();
-        if (empty($redirects)) {
-            return;
+        if (
+            empty($redirects)
+            || in_array($requestPath, $this->getExcludes())
+        ) {
+            return null;
         }
 
         // direct match
         // TODO get redirects only without wildcard
         if (!empty($redirects[$requestPath])) {
             $redirect = $redirects[$requestPath];
-            $finalPath = $this->getTypeHandler($redirect->getType())($redirect->getDestination()) . $this->getQuerystringWithFragment();
-            $this->redirectToLocation($finalPath, $redirect->getHttpStatus());
+            $typeHandlerCallback = $this->getTypeHandler($redirect->getType());
+            $redirectUri = $redirectUri
+                ->withPath($typeHandlerCallback($redirect->getDestination()))
+                ->withStatusCode($redirect->getHttpStatus());
+            return $redirectUri->createResponse($redirectUri);
         }
 
         $finalPath = '';
@@ -213,131 +280,38 @@ class Controller
             }
 
             $rDestination = $redirect->getDestination();
-            // if (urldecode($requestPath) == rtrim($rSource, '/')) { // simple comparison redirect
-            //     $finalPath = $this->getTypeHandler($redirect->getType())($rDestination) . $queryString;
-            // } else
-            // if (strpos($rSource, '*') !== false) { // wildcard redirect
             $rSourcePattern = rtrim(str_replace('*', '(.*)', $rSource), '/');
             $pattern = '/^' . str_replace('/', '\/', $rSourcePattern) . '/';
             $output = preg_replace($pattern, $this->parseDestination($rDestination), $requestPath);
             if ($output === $requestPath) {
                 continue;
             }
-            $finalPath = $this->getTypeHandler($redirect->getType())($output) . $this->getQuerystringWithFragment();
-            // }
+            $typeHandlerCallback = $this->getTypeHandler($redirect->getType());
+            $finalPath = $typeHandlerCallback($output);
 
             // redirect. the second condition here prevents redirect loops as a result of wildcards.
             if ($finalPath !== '' && trim($finalPath, '/') !== trim($requestPath, '/')) {
-                $this->redirectToLocation($finalPath, $redirect->getHttpStatus());
+                $redirectUri = $redirectUri
+                    ->withPath($finalPath)
+                    ->withStatusCode($redirect->getHttpStatus());
+                return $redirectUri->createResponse($redirectUri);
             }
         }
-        // echo (microtime(true) - $this->start);
-        // exit();
+        return null;
     }
 
-    public function getHooks(): array
-    {
-        return (is_array($this->hooks)) ? $this->hooks : [];
-    }
-
-    public function setHooks(array $hooks): self
-    {
-        foreach ($hooks as $hook => $callable) {
-            $this->setHook($hook, $callable);
-        }
-        return $this;
-    }
-
-    public function setHook(string $hook, callable $callable)
-    {
-        $this->hooks[$hook] = $callable;
-        return $this;
-    }
-
-    private function getHook(string $hook): ?callable
-    {
-        return (isset($this->hooks[$hook]) && is_callable($this->hooks[$hook])) ? $this->hooks[$hook] : null;
-    }
-
-    private function runHook(string $hook, array &$args = [])
+    private function runHook(string $hook, $args = null)
     {
         $callable = $this->getHook($hook);
         return (!is_callable($callable)) ? call_user_func_array($callable, $args) : null;
     }
 
-    public function redirectToLocation(string $location, int $status = 302)
+    public function emitResponse(Response $response)
     {
-        // check if destination needs the domain prepended
-        if (strpos($location, '/') === 0) {
-            $location = $this->getHostWithProtocol() . $location;
-        }
-        // echo (microtime(true) - $this->start);
-        // exit();
-
-        $parameters = [&$location, &$status];
-        $this->runHook('pre_redirect', $parameters);
-        header(sprintf('Location: %s', $location), true, $status);
-        $this->runHook('post_redirect', $parameters);
+        $response = $this->runHook('pre_redirect', $response);
+        $emitter = new SapiEmitter();
+        $emitter->emit($response);
+        $this->runHook('post_redirect', $response);
         exit();
-    }
-
-    public function redirectToHttps(): void
-    {
-        if ($this->isHttps()) {
-            return;
-        }
-        $secureRedirect = sprintf('https://%s%s', $this->getHttpHost(), $this->getRequestUri());
-        $this->redirectToLocation($secureRedirect, 301);
-    }
-
-    public function isHttps(): bool
-    {
-        $isSecure = false;
-        if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') {
-            $isSecure = true;
-        } elseif (
-            (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')
-            ||
-            (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && $_SERVER['HTTP_X_FORWARDED_SSL'] == 'on')
-        ) {
-            $isSecure = true;
-        }
-        return $isSecure;
-    }
-
-    public function getScheme(): string
-    {
-        return $this->getRequest()->scheme;
-    }
-
-    public function getHttpHost(): string
-    {
-        return $this->getRequest()->host;
-    }
-
-    public function getQuerystringWithFragment(): string
-    {
-        $request = $this->getRequest();
-        $query = (!empty($request->query)) ? '?' . $request->query : '';
-        $fragment = (!empty($request->fragment)) ? '#' . $request->fragment : '';
-        return $query . $fragment;
-    }
-
-    public function getRequestUri(): string
-    {
-        $url = $this->getRequest();
-        $query = (!empty($url->query)) ? '?' . $url->query : '';
-        $fragment = (!empty($url->fragment)) ? '#' . $url->fragment : '';
-        return $url->path . $query . $fragment;
-    }
-
-    public function getHostWithProtocol(): string
-    {
-        return $this->getRequest()->scheme . '://' . $this->getRequest()->host;
-    }
-
-    public function getRequestAbsolute(): string
-    {
-        return $this->getHostWithProtocol() . $this->getRequestUri();
     }
 }

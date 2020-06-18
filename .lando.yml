@@ -13,11 +13,11 @@ tooling:
   composer:
     service: php
     description: Run composer commands on php latest
-    cmd: composer
+    cmd: cd /app && export COMPOSER_VENDOR_DIR=vendor && export COMPOSER="./composer.json" && composer
   composer7:
     service: php7
     description: Run composer commands on php 7.2
-    cmd: composer
+    cmd: cd /app && export COMPOSER_VENDOR_DIR=vendor7 && export COMPOSER="./composer7.json" && composer
   php:
     service: php
     cmd: php
