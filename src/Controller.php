@@ -13,7 +13,10 @@ use Zend\HttpHandlerRunner\Emitter\SapiEmitter;
 class Controller
 {
     protected $excludes = [];
-    protected $hooks = [];
+    protected $hooks = [
+        'pre_redirect' => null,
+        'post_redirect' => null
+    ];
     protected $options = [
         'enabled' => true,
         'forcehttps' => false,
@@ -36,12 +39,12 @@ class Controller
         $this->setTypeHandler('path', function (string $destination) {
             return $destination;
         });
-        $this->setTypeHandler('domain', function (string $destination) {
-            return $destination;
-        });
+        // $this->setTypeHandler('domain', function (string $destination) {
+        //     return $destination;
+        // });
     }
 
-    public static function instance()
+    public static function factory(Request $request, Response $response, array $redirects, array $options = [])
     {
         static $self;
         $called = get_called_class();
@@ -49,7 +52,7 @@ class Controller
             return $self;
         }
 
-        $self = new $called;
+        $self = new $called($request, $response, $redirects, $options);
         return $self;
     }
 
@@ -58,7 +61,7 @@ class Controller
         return $this->excludes;
     }
 
-    protected function setExcludes(array $excludes): self
+    public function setExcludes(array $excludes): self
     {
         $this->excludes = $excludes;
         return $this;
@@ -74,7 +77,7 @@ class Controller
         if (!$this->hasHook($hook)) {
             throw new \Exception(sprintf('Could not retrieve hook: %s', $hook));
         }
-        return $this->hooks[$hook];
+        return $this->getHooks()[$hook];
     }
 
     public function setHooks(array $hooks): self
@@ -186,23 +189,6 @@ class Controller
      * Main redirect methods
      */
 
-
-    public function isRequestHttps(Uri $uri): bool
-    {
-        return ($uri->getScheme() == 'https') ? true : false;
-    }
-
-    public function getQuerystringWithFragment(): string
-    {
-        $uri = $this->getRequest()->getUri();
-        $query = $uri->getQuery();
-        $fragment = $uri->getFragment();
-
-        $query = (!empty($query)) ? '?' . $query : '';
-        $fragment = (!empty($fragment)) ? '#' . $fragment : '';
-        return $query . $fragment;
-    }
-
     protected function getRedirectsFiltered(?bool $active = null, ?array $types = []): array
     {
         $redirects = [];
@@ -211,7 +197,7 @@ class Controller
             if (is_bool($active) && $redirect->getActive() <> $active) {
                 continue;
             }
-            if (!empty($types) && !in_array($redirect->getType(), $handlers)) {
+            if (!empty($handlers) && !in_array($redirect->getType(), $handlers)) {
                 continue;
             }
             $redirects[$source] = $redirect;

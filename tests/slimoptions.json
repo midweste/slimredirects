@@ -1,5 +1,5 @@
 {
   "enabled": true,
   "wildcard": true,
-  "forcehttps": true
+  "forcehttps": false
 }
