@@ -2,20 +2,16 @@
 
 namespace Midweste\SlimRedirects;
 
-use Psr\Http\Message\UriInterface as Uri;
+use Laminas\HttpHandlerRunner\Emitter\SapiEmitter as EmitterSapiEmitter;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Zend\HttpHandlerRunner\Emitter\SapiEmitter;
 
-/**
- * https://github.com/php-fig/http-message/blob/master/docs/PSR7-Interfaces.md
- */
 class Controller
 {
     protected $excludes = [];
     protected $hooks = [
-        'pre_redirect',
-        'post_redirect'
+        'pre_redirect_filter',
+        'post_redirect_action'
     ];
     protected $hooksRegistered = [];
     protected $options = [
@@ -194,6 +190,35 @@ class Controller
     /**
      * Main redirect methods
      */
+    public function setOption(string $option, $value): self
+    {
+        $options = $this->getOptions();
+        if (!isset($options[$option])) {
+            throw new \Exception('Option not available');
+        }
+        $options[$option] = $value;
+        return $this->setOptions($options);
+    }
+
+    public function setForceHttps(bool $force): self
+    {
+        return $this->setOption('forcehttps', true);
+    }
+
+    public function getForceHttps(): bool
+    {
+        return $this->getOption('forcehttps', true);
+    }
+
+
+    public function emitResponse(Response $response): bool
+    {
+        $response = $this->runHook('pre_redirect_filter', $response);
+        $emitter = new EmitterSapiEmitter();
+        $result = $emitter->emit($response);
+        $this->runHook('post_redirect_action', $response);
+        return $result;
+    }
 
     protected function getRedirectsFiltered(?bool $active = null, ?array $types = []): array
     {
@@ -298,13 +323,5 @@ class Controller
         }
         $callable = $this->getHook($hook);
         return $callable($args);
-    }
-
-    public function emitResponse(Response $response)
-    {
-        $response = $this->runHook('pre_redirect', $response);
-        $emitter = new SapiEmitter();
-        $emitter->emit($response);
-        $this->runHook('post_redirect', $response);
     }
 }

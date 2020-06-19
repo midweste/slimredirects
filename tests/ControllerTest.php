@@ -172,6 +172,30 @@ class SlimRedirectsTest extends TestCase
         $this->assertEquals($result->responseStatus, $rule['httpStatus']);
     }
 
+    public function testSetForceHttps()
+    {
+        $rule = [
+            "id" => "1",
+            "source" => "/",
+            "type" => "path",
+            "destination" => "/root",
+            "httpStatus" => 302,
+            "active" => 1
+        ];
+        $options = $this->loadOptions();
+        $options['forcehttps'] = false;
+
+        $controller = $this->slimRedirectController('http://localhost/', [], $options);
+        $result = $this->slimRedirectWithController($controller);
+        $this->assertEquals($result->location, null);
+        $this->assertEquals($result->responseStatus, null);
+
+        $controller->setForceHttps(true);
+        $result = $this->slimRedirectWithController($controller);
+        $this->assertEquals($result->locationUri->getScheme(), 'https');
+        $this->assertEquals($result->responseStatus, 302);
+    }
+
     public function testOptionNonExistant()
     {
         $rule = [
@@ -355,6 +379,7 @@ class SlimRedirectsTest extends TestCase
             return $request;
         });
 
-        $controller->emitResponse($result->response);
+        $result = $controller->emitResponse($result->response);
+        $this->assertTrue($result);
     }
 }
