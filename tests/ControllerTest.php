@@ -294,6 +294,50 @@ class SlimRedirectsTest extends TestCase
 
     public function testRedirectSimpleWildcardPath()
     {
+        $rules = [
+            [
+                "id" => 1,
+                "source" => "/notmatching/wild/*/card",
+                "type" => "path",
+                "destination" => "/wildcard/*",
+                "httpStatus" => 301,
+                "active" => 1
+            ],
+            [
+                "id" => 2,
+                "source" => "/wild/*/card",
+                "type" => "path",
+                "destination" => "/wildcard/*",
+                "httpStatus" => 301,
+                "active" => 1
+            ]
+        ];
+        $result = $this->slimRedirect('https://localhost/wild/test/card?query=string', $rules);
+        $this->assertEquals($result->responseStatus, $rules[1]['httpStatus']);
+        $this->assertEquals($result->location, 'https://localhost/wildcard/test?query=string');
+    }
+
+    public function testParseDestination()
+    {
+        $rule = [
+            "id" => "1",
+            "source" => "/wild/*/card",
+            "type" => "path",
+            "destination" => "/wildcard",
+            "httpStatus" => 301,
+            "active" => 1
+        ];
+        $controller = $this->slimRedirectController('https://localhost/wild/test/card?query=string', [$rule]);
+        $result = $this->slimRedirectWithController($controller);
+        $this->assertEquals($result->responseStatus, $rule['httpStatus']);
+        $this->assertEquals($result->location, 'https://localhost/wildcard?query=string');
+    }
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function testRedirectEmit()
+    {
         $rule = [
             "id" => "1",
             "source" => "/wild/*/card",
@@ -302,8 +346,15 @@ class SlimRedirectsTest extends TestCase
             "httpStatus" => 301,
             "active" => 1
         ];
-        $result = $this->slimRedirect('https://localhost/wild/test/card?query=string', [$rule]);
+        $controller = $this->slimRedirectController('https://localhost/wild/test/card?query=string', [$rule]);
+        $result = $this->slimRedirectWithController($controller);
         $this->assertEquals($result->responseStatus, $rule['httpStatus']);
         $this->assertEquals($result->location, 'https://localhost/wildcard/test?query=string');
+
+        $controller->setHook('pre_redirect', function ($request) {
+            return $request;
+        });
+
+        $controller->emitResponse($result->response);
     }
 }

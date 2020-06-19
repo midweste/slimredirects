@@ -93,4 +93,14 @@ class RedirectRule
         $this->source = $source;
         return $this;
     }
+
+    public function toArray(): array
+    {
+        return \get_object_vars($this);
+    }
+
+    public function toObject(): object
+    {
+        return (object) $this->toArray();
+    }
 }

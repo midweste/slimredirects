@@ -14,9 +14,10 @@ class Controller
 {
     protected $excludes = [];
     protected $hooks = [
-        'pre_redirect' => null,
-        'post_redirect' => null
+        'pre_redirect',
+        'post_redirect'
     ];
+    protected $hooksRegistered = [];
     protected $options = [
         'enabled' => true,
         'forcehttps' => false,
@@ -69,6 +70,11 @@ class Controller
 
     public function getHooks(): array
     {
+        return $this->hooksRegistered;
+    }
+
+    public function getHookList(): array
+    {
         return $this->hooks;
     }
 
@@ -90,13 +96,13 @@ class Controller
 
     public function setHook(string $hook, callable $callable)
     {
-        $this->hooks[$hook] = $callable;
+        $this->hooksRegistered[$hook] = $callable;
         return $this;
     }
 
     public function hasHook(string $hook): bool
     {
-        return isset($this->hooks[$hook]);
+        return array_key_exists($hook, $this->getHooks());
     }
 
     public function getOptions(): array
@@ -237,12 +243,10 @@ class Controller
         if ($this->getOption('forcehttps') && $redirectUri->getScheme() !== 'https') {
             $redirectUri = $redirectUri->withScheme('https')->withStatusCode(302);
             return $redirectUri->createResponse($redirectUri);
+            // TODO - force https should not require two redirects
         }
 
-        if (
-            empty($redirects)
-            || in_array($requestPath, $this->getExcludes())
-        ) {
+        if (empty($redirects) || in_array($requestPath, $this->getExcludes())) {
             return null;
         }
 
@@ -267,8 +271,9 @@ class Controller
 
             $rDestination = $redirect->getDestination();
             $rSourcePattern = rtrim(str_replace('*', '(.*)', $rSource), '/');
-            $pattern = '/^' . str_replace('/', '\/', $rSourcePattern) . '/';
-            $output = preg_replace($pattern, $this->parseDestination($rDestination), $requestPath);
+            $rSourcePatternRegex = '/^' . str_replace('/', '\/', $rSourcePattern) . '/';
+            $output = preg_replace($rSourcePatternRegex, $this->parseDestination($rDestination), $requestPath);
+            // non matching rule
             if ($output === $requestPath) {
                 continue;
             }
@@ -288,8 +293,11 @@ class Controller
 
     private function runHook(string $hook, $args = null)
     {
+        if (!$this->hasHook($hook)) {
+            return $args;
+        }
         $callable = $this->getHook($hook);
-        return (!is_callable($callable)) ? call_user_func_array($callable, $args) : null;
+        return $callable($args);
     }
 
     public function emitResponse(Response $response)
@@ -298,6 +306,5 @@ class Controller
         $emitter = new SapiEmitter();
         $emitter->emit($response);
         $this->runHook('post_redirect', $response);
-        exit();
     }
 }
