@@ -5,6 +5,8 @@ namespace Midweste\SlimRedirects;
 use Laminas\HttpHandlerRunner\Emitter\SapiEmitter as EmitterSapiEmitter;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Psr7\Factory\ResponseFactory;
+use Slim\Psr7\Factory\ServerRequestFactory;
 
 class Controller
 {
@@ -36,7 +38,7 @@ class Controller
         // });
     }
 
-    public static function factory(Request $request, Response $response, array $redirects, array $options = [])
+    public static function factory(Request $request, Response $response, array $redirects, array $options = []): self
     {
         static $self;
         $called = get_called_class();
@@ -46,6 +48,20 @@ class Controller
 
         $self = new $called($request, $response, $redirects, $options);
         return $self;
+    }
+
+    public static function createRequestFromGlobals(): Request
+    {
+        $factory = new ServerRequestFactory();
+        $serverRequest = $factory->createFromGlobals();
+        return $serverRequest;
+    }
+
+    public static function createResponse(): Response
+    {
+        $factory = new ResponseFactory();
+        $response = $factory->createResponse();
+        return $response;
     }
 
     public function getExcludes(): array
