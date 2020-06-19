@@ -14,11 +14,6 @@ class Controller
         'post_redirect_action'
     ];
     protected $hooksRegistered = [];
-    // protected $options = [
-    //     'enabled' => true,
-    //     'forcehttps' => false,
-    //     'wildcard' => true,
-    // ];
     protected $redirects = [];
     protected $request = null;
     protected $response = null;
@@ -202,7 +197,6 @@ class Controller
     {
         return $this->getOption('forcehttps', true);
     }
-
 
     public function emitResponse(Response $response): bool
     {
