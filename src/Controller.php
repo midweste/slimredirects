@@ -14,11 +14,11 @@ class Controller
         'post_redirect_action'
     ];
     protected $hooksRegistered = [];
-    protected $options = [
-        'enabled' => true,
-        'forcehttps' => false,
-        'wildcard' => true,
-    ];
+    // protected $options = [
+    //     'enabled' => true,
+    //     'forcehttps' => false,
+    //     'wildcard' => true,
+    // ];
     protected $redirects = [];
     protected $request = null;
     protected $response = null;
@@ -101,22 +101,19 @@ class Controller
         return array_key_exists($hook, $this->getHooks());
     }
 
-    public function getOptions(): array
+    public function getOptions(): RedirectOptions
     {
         return $this->options;
     }
 
     public function getOption(string $option)
     {
-        if (!isset($this->getOptions()[$option])) {
-            throw new \Exception(sprintf('Could not retrive option: %s', $option));
-        }
-        return $this->options[$option];
+        return $this->getOptions()->getOption($option);
     }
 
     protected function setOptions(array $options = []): self
     {
-        $this->options = \array_replace_recursive($this->options, $options);
+        $this->options = RedirectOptions::factory($options);
         return $this;
     }
 
@@ -192,12 +189,8 @@ class Controller
      */
     public function setOption(string $option, $value): self
     {
-        $options = $this->getOptions();
-        if (!isset($options[$option])) {
-            throw new \Exception('Option not available');
-        }
-        $options[$option] = $value;
-        return $this->setOptions($options);
+        $this->getOptions()->setOption($option, $value);
+        return $this;
     }
 
     public function setForceHttps(bool $force): self
