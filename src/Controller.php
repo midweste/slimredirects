@@ -231,6 +231,15 @@ class Controller
         return $result;
     }
 
+    public function emitResponseAndExit(Response $response): void
+    {
+        $result = $this->emitResponse($response);
+        if ($result === false) {
+            throw new \Exception('Could not send response.');
+        }
+        exit();
+    }
+
     protected function getRedirectsFiltered(?bool $active = null, ?array $types = []): array
     {
         $redirects = [];
