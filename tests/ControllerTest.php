@@ -394,6 +394,26 @@ class SlimRedirectsTest extends TestCase
         $this->assertEquals('https://localhost/wildcard?query=string', $result->location);
     }
 
+    public function testRegressionForceHttpsButNoMatches()
+    {
+        $rule = [
+            "id" => "1",
+            "source" => "/wild/*/card",
+            "type" => "path",
+            "destination" => "/wildcard",
+            "httpStatus" => 302,
+            "active" => 1
+        ];
+        $controller = $this
+            ->slimRedirectController('http://localhost/notmatched?query=string', [$rule])
+            ->setForceHttps(true);
+        $this->assertEquals(true, $controller->getForceHttps());
+
+        $result = $this->slimRedirectWithController($controller);
+        $this->assertEquals($rule['httpStatus'], $result->responseStatus);
+        $this->assertEquals('https://localhost/notmatched?query=string', $result->location);
+    }
+
     public function testGetAvailableHooks()
     {
         $rule = [

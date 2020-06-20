@@ -271,10 +271,10 @@ class Controller
         $redirects = $this->getRedirectsFiltered(true);
         $redirectUri = new RedirectUri($this->getRequest()->getUri(), $this->getResponse()->getStatusCode());
         $requestPath = urldecode($redirectUri->getUri()->getPath());
-        $modified = false;
+        $return = null;
 
         if ($this->getOption('enabled') === false) {
-            return null;
+            return $return;
         }
 
         if ($this->getOption('forcehttps') && $redirectUri->getScheme() !== 'https') {
@@ -282,12 +282,12 @@ class Controller
             if ($redirectUri->getPort() == '80') {
                 $redirectUri = $redirectUri->withPort(null);
             }
-            $modified = true;
+            $return = $redirectUri->createResponse($redirectUri);
         }
 
         if (empty($redirects) || in_array($requestPath, $this->getExcludes())) {
             // allow for http to https even if no redirects exists or path excluded
-            return ($modified) ? $redirectUri->createResponse($redirectUri) : null;
+            return $return;
         }
 
         // direct match
@@ -328,7 +328,7 @@ class Controller
                 return $redirectUri->createResponse($redirectUri);
             }
         }
-        return null;
+        return $return;
     }
 
     protected function runHook(string $hook, $args = null)
