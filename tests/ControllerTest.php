@@ -3,6 +3,7 @@
 use Midweste\SlimRedirects\Controller;
 use Midweste\SlimRedirects\RedirectRule;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UriInterface;
@@ -151,8 +152,8 @@ class SlimRedirectsTest extends TestCase
         $options = $this->loadOptions();
         $options['enabled'] = false;
         $result = $this->slimRedirect('http://localhost/', [$rule], $options);
-        $this->assertEquals($result->locationUri, null);
-        $this->assertEquals($result->responseStatus, null);
+        $this->assertEquals(null, $result->locationUri);
+        $this->assertEquals(null, $result->responseStatus);
     }
 
     public function testOptionForceHttps()
@@ -168,8 +169,8 @@ class SlimRedirectsTest extends TestCase
         $options = $this->loadOptions();
         $options['forcehttps'] = true;
         $result = $this->slimRedirect('http://localhost/', [$rule], $options);
-        $this->assertEquals($result->locationUri->getScheme(), 'https');
-        $this->assertEquals($result->responseStatus, $rule['httpStatus']);
+        $this->assertEquals('https', $result->locationUri->getScheme());
+        $this->assertEquals($rule['httpStatus'], $result->responseStatus);
     }
 
     public function testSetForceHttps()
@@ -187,13 +188,13 @@ class SlimRedirectsTest extends TestCase
 
         $controller = $this->slimRedirectController('http://localhost/', [], $options);
         $result = $this->slimRedirectWithController($controller);
-        $this->assertEquals($result->location, null);
-        $this->assertEquals($result->responseStatus, null);
+        $this->assertEquals(null, $result->location);
+        $this->assertEquals(null, $result->responseStatus);
 
         $controller->setForceHttps(true);
         $result = $this->slimRedirectWithController($controller);
-        $this->assertEquals($result->locationUri->getScheme(), 'https');
-        $this->assertEquals($result->responseStatus, 302);
+        $this->assertEquals('https', $result->locationUri->getScheme());
+        $this->assertEquals(302, $result->responseStatus);
     }
 
     public function testOptionNonExistant()
@@ -212,11 +213,27 @@ class SlimRedirectsTest extends TestCase
         $controller->getOption('nonexistant');
     }
 
+    public function testTypeHandlerInvalid()
+    {
+        $rule = [
+            "id" => "1",
+            "source" => "/",
+            "type" => "path",
+            "destination" => "/root",
+            "httpStatus" => 302,
+            "active" => 1
+        ];
+
+        $controller = $this->slimRedirectController('https://localhost/nomatch?query=string');
+        $this->expectException(Exception::class);
+        $controller->getTypeHandler('wontfind');
+    }
+
     public function testRedirectNoRedirects()
     {
         $result = $this->slimRedirect('https://localhost/nomatch?query=string');
-        $this->assertEquals($result->responseStatus, null);
-        $this->assertEquals($result->location, null);
+        $this->assertEquals(null, $result->responseStatus);
+        $this->assertEquals(null, $result->location);
     }
 
     public function testRedirectFilterNonType()
@@ -230,8 +247,8 @@ class SlimRedirectsTest extends TestCase
             "active" => 1
         ];
         $result = $this->slimRedirect('https://localhost/nomatch?query=string', [$rule]);
-        $this->assertEquals($result->responseStatus, null);
-        $this->assertEquals($result->location, null);
+        $this->assertEquals(null, $result->responseStatus);
+        $this->assertEquals(null, $result->location);
     }
 
     public function testRedirectFilterNonActive()
@@ -245,8 +262,8 @@ class SlimRedirectsTest extends TestCase
             "active" => 0
         ];
         $result = $this->slimRedirect('https://localhost/nomatch?query=string', [$rule]);
-        $this->assertEquals($result->responseStatus, null);
-        $this->assertEquals($result->location, null);
+        $this->assertEquals(null, $result->responseStatus);
+        $this->assertEquals(null, $result->location);
     }
 
     public function testHookNewHandler()
@@ -264,8 +281,8 @@ class SlimRedirectsTest extends TestCase
             return $request;
         });
         $result = $this->slimRedirectWithController($controller);
-        $this->assertEquals($result->responseStatus, null);
-        $this->assertEquals($result->location, null);
+        $this->assertEquals(null, $result->responseStatus);
+        $this->assertEquals(null, $result->location);
     }
 
     public function testExcludes()
@@ -282,8 +299,8 @@ class SlimRedirectsTest extends TestCase
         $controller->setExcludes(['/excluded']);
 
         $result = $this->slimRedirectWithController($controller);
-        $this->assertEquals($result->responseStatus, null);
-        $this->assertEquals($result->location, null);
+        $this->assertEquals(null, $result->responseStatus);
+        $this->assertEquals(null, $result->location);
     }
 
     public function testRedirectNonMatch()
@@ -297,8 +314,8 @@ class SlimRedirectsTest extends TestCase
             "active" => 1
         ];
         $result = $this->slimRedirect('https://localhost/nomatch?query=string', [$rule]);
-        $this->assertEquals($result->responseStatus, null);
-        $this->assertEquals($result->location, null);
+        $this->assertEquals(null, $result->responseStatus);
+        $this->assertEquals(null, $result->location);
     }
 
     public function testRedirectRootRedirect()
@@ -312,7 +329,7 @@ class SlimRedirectsTest extends TestCase
             "active" => 1
         ];
         $result = $this->slimRedirect('https://localhost/?query=string', [$rule]);
-        $this->assertEquals($result->responseStatus, $rule['httpStatus']);
+        $this->assertEquals($rule['httpStatus'], $result->responseStatus);
         $this->assertEquals($result->location, 'https://localhost/root?query=string');
     }
 
@@ -324,7 +341,7 @@ class SlimRedirectsTest extends TestCase
                 "source" => "/notmatching/wild/*/card",
                 "type" => "path",
                 "destination" => "/wildcard/*",
-                "httpStatus" => 301,
+                "httpStatus" => 302,
                 "active" => 1
             ],
             [
@@ -332,13 +349,13 @@ class SlimRedirectsTest extends TestCase
                 "source" => "/wild/*/card",
                 "type" => "path",
                 "destination" => "/wildcard/*",
-                "httpStatus" => 301,
+                "httpStatus" => 302,
                 "active" => 1
             ]
         ];
         $result = $this->slimRedirect('https://localhost/wild/test/card?query=string', $rules);
-        $this->assertEquals($result->responseStatus, $rules[1]['httpStatus']);
-        $this->assertEquals($result->location, 'https://localhost/wildcard/test?query=string');
+        $this->assertEquals($rules[1]['httpStatus'], $result->responseStatus);
+        $this->assertEquals('https://localhost/wildcard/test?query=string', $result->location);
     }
 
     public function testParseDestination()
@@ -348,36 +365,85 @@ class SlimRedirectsTest extends TestCase
             "source" => "/wild/*/card",
             "type" => "path",
             "destination" => "/wildcard",
-            "httpStatus" => 301,
+            "httpStatus" => 302,
             "active" => 1
         ];
         $controller = $this->slimRedirectController('https://localhost/wild/test/card?query=string', [$rule]);
         $result = $this->slimRedirectWithController($controller);
-        $this->assertEquals($result->responseStatus, $rule['httpStatus']);
-        $this->assertEquals($result->location, 'https://localhost/wildcard?query=string');
+        $this->assertEquals($rule['httpStatus'], $result->responseStatus);
+        $this->assertEquals('https://localhost/wildcard?query=string', $result->location);
     }
+
+    public function testRegressionPort80RemainedWhenForcingHttps()
+    {
+        $rule = [
+            "id" => "1",
+            "source" => "/wild/*/card",
+            "type" => "path",
+            "destination" => "/wildcard",
+            "httpStatus" => 302,
+            "active" => 1
+        ];
+        $controller = $this
+            ->slimRedirectController('http://localhost:80/wild/test/card?query=string', [$rule])
+            ->setForceHttps(true);
+        $this->assertEquals(true, $controller->getForceHttps());
+
+        $result = $this->slimRedirectWithController($controller);
+        $this->assertEquals($rule['httpStatus'], $result->responseStatus);
+        $this->assertEquals('https://localhost/wildcard?query=string', $result->location);
+    }
+
+    public function testGetAvailableHooks()
+    {
+        $rule = [
+            "id" => "1",
+            "source" => "/wild/*/card",
+            "type" => "path",
+            "destination" => "/wildcard",
+            "httpStatus" => 302,
+            "active" => 1
+        ];
+        $controller = $this->slimRedirectController('http://localhost:80/wild/test/card?query=string', [$rule]);
+        $definedHooks = $controller->getHooksAvailable();
+        $this->assertArrayHasKey('pre_redirect_filter', $definedHooks);
+    }
+
+    public function testCreateRequestFromGlobals()
+    {
+        $request = Controller::createRequestFromGlobals();
+        $this->assertInstanceOf(RequestInterface::class, $request);
+    }
+
+    public function testCreateResponse()
+    {
+        $request = Controller::createResponse();
+        $this->assertInstanceOf(ResponseInterface::class, $request);
+    }
+
 
     /**
      * @runInSeparateProcess
      */
-    public function testRedirectEmit()
+    public function testRedirectEmitReponse()
     {
         $rule = [
             "id" => "1",
             "source" => "/wild/*/card",
             "type" => "path",
             "destination" => "/wildcard/*",
-            "httpStatus" => 301,
+            "httpStatus" => 302,
             "active" => 1
         ];
-        $controller = $this->slimRedirectController('https://localhost/wild/test/card?query=string', [$rule]);
-        $result = $this->slimRedirectWithController($controller);
-        $this->assertEquals($result->responseStatus, $rule['httpStatus']);
-        $this->assertEquals($result->location, 'https://localhost/wildcard/test?query=string');
+        $controller = $this
+            ->slimRedirectController('https://localhost/wild/test/card?query=string', [$rule])
+            ->setHook('pre_redirect_filter', function ($request) {
+                return $request;
+            });
 
-        $controller->setHook('pre_redirect', function ($request) {
-            return $request;
-        });
+        $result = $this->slimRedirectWithController($controller);
+        $this->assertEquals($rule['httpStatus'], $result->responseStatus);
+        $this->assertEquals($result->location, 'https://localhost/wildcard/test?query=string');
 
         $result = $controller->emitResponse($result->response);
         $this->assertTrue($result);

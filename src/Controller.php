@@ -3,6 +3,7 @@
 namespace Midweste\SlimRedirects;
 
 use Laminas\HttpHandlerRunner\Emitter\SapiEmitter as EmitterSapiEmitter;
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Psr7\Factory\ResponseFactory;
@@ -12,10 +13,10 @@ class Controller
 {
     protected $excludes = [];
     protected $hooks = [
-        'pre_redirect_filter',
-        'post_redirect_action'
+        'pre_redirect_filter' => RequestInterface::class,
+        'post_redirect_action' => RequestInterface::class
     ];
-    protected $hooksRegistered = [];
+    protected $hookStack = [];
     protected $redirects = [];
     protected $request = null;
     protected $response = null;
@@ -75,41 +76,48 @@ class Controller
         return $this;
     }
 
-    public function getHooks(): array
+    public function getHookStack(): array
     {
-        return $this->hooksRegistered;
+        return $this->hookStack;
     }
 
-    public function getHookList(): array
+    protected function setHookStack(array $hooks): self
+    {
+        $this->hookStack = $hooks;
+        return $this;
+    }
+
+    public function getHooksAvailable(): array
     {
         return $this->hooks;
     }
 
-    private function getHook(string $hook): callable
+    protected function getHook(string $hook): callable
     {
-        if (!$this->hasHook($hook)) {
+        if (!$this->isHookOnStack($hook)) {
             throw new \Exception(sprintf('Could not retrieve hook: %s', $hook));
         }
-        return $this->getHooks()[$hook];
-    }
-
-    public function setHooks(array $hooks): self
-    {
-        foreach ($hooks as $hook => $callable) {
-            $this->setHook($hook, $callable);
-        }
-        return $this;
+        return $this->getHookStack()[$hook];
     }
 
     public function setHook(string $hook, callable $callable)
     {
-        $this->hooksRegistered[$hook] = $callable;
+        if (!$this->isHookAvailable($hook)) {
+            throw new \Exception(sprintf('Could not set hook: %s', $hook));
+        }
+        $this->hookStack[$hook] = $callable;
         return $this;
     }
 
-    public function hasHook(string $hook): bool
+    public function isHookAvailable(string $hook): bool
     {
-        return array_key_exists($hook, $this->getHooks());
+        return array_key_exists($hook, $this->hooks);
+    }
+
+    public function isHookOnStack(string $hook): bool
+    {
+        $hooks = $this->getHookStack();
+        return array_key_exists($hook, $hooks);
     }
 
     public function getOptions(): RedirectOptions
@@ -206,12 +214,12 @@ class Controller
 
     public function setForceHttps(bool $force): self
     {
-        return $this->setOption('forcehttps', true);
+        return $this->setOption('forcehttps', $force);
     }
 
     public function getForceHttps(): bool
     {
-        return $this->getOption('forcehttps', true);
+        return $this->getOption('forcehttps');
     }
 
     public function emitResponse(Response $response): bool
@@ -263,6 +271,7 @@ class Controller
         $redirects = $this->getRedirectsFiltered(true);
         $redirectUri = new RedirectUri($this->getRequest()->getUri(), $this->getResponse()->getStatusCode());
         $requestPath = urldecode($redirectUri->getUri()->getPath());
+        $modified = false;
 
         if ($this->getOption('enabled') === false) {
             return null;
@@ -270,12 +279,15 @@ class Controller
 
         if ($this->getOption('forcehttps') && $redirectUri->getScheme() !== 'https') {
             $redirectUri = $redirectUri->withScheme('https')->withStatusCode(302);
-            return $redirectUri->createResponse($redirectUri);
-            // TODO - force https should not require two redirects
+            if ($redirectUri->getPort() == '80') {
+                $redirectUri = $redirectUri->withPort(null);
+            }
+            $modified = true;
         }
 
         if (empty($redirects) || in_array($requestPath, $this->getExcludes())) {
-            return null;
+            // allow for http to https even if no redirects exists or path excluded
+            return ($modified) ? $redirectUri->createResponse($redirectUri) : null;
         }
 
         // direct match
@@ -319,9 +331,9 @@ class Controller
         return null;
     }
 
-    private function runHook(string $hook, $args = null)
+    protected function runHook(string $hook, $args = null)
     {
-        if (!$this->hasHook($hook)) {
+        if (!$this->isHookOnStack($hook)) {
             return $args;
         }
         $callable = $this->getHook($hook);
