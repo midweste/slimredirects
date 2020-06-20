@@ -20,7 +20,8 @@
     "psr/http-message": "^1.0",
     "slim/psr7": "^1.1",
     "slim/http": "^1.0",
-    "laminas/laminas-httphandlerrunner": "^1.2"
+    "laminas/laminas-httphandlerrunner": "^1.2",
+    "laminas/laminas-diactoros": "^2.3"
   },
   "require-dev": {
     "phpunit/phpunit": "^9.2",

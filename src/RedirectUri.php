@@ -3,10 +3,10 @@
 
 namespace Midweste\SlimRedirects;
 
+use Laminas\Diactoros\Response\RedirectResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriInterface;
 use Slim\Http\Uri;
-use Slim\Psr7\Factory\ResponseFactory;
 
 class RedirectUri extends Uri
 {
@@ -44,9 +44,7 @@ class RedirectUri extends Uri
 
     public function createResponse(RedirectUri $uri): ResponseInterface
     {
-        $factory = new ResponseFactory;
-        $response = $factory->createResponse($uri->getStatusCode());
-        $response = $response->withHeader('Location', (string) $uri->getUri());
+        $response = new RedirectResponse($uri->getUri(), $uri->getStatusCode());
         return $response;
     }
 }
