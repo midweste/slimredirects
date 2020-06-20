@@ -23,8 +23,6 @@ class Controller
 
     public function __construct(Request $request, Response $response, array $redirects, array $options = [])
     {
-        //$this->request = \Symfony\Component\HttpFoundation\Request::createFromGlobals();
-        //$this->request = $this->createRequest();
         $this->setResponse($response);
         $this->setRequest($request);
         $this->setRedirects($redirects);
@@ -120,22 +118,6 @@ class Controller
         return array_key_exists($hook, $hooks);
     }
 
-    public function getOptions(): RedirectOptions
-    {
-        return $this->options;
-    }
-
-    public function getOption(string $option)
-    {
-        return $this->getOptions()->getOption($option);
-    }
-
-    protected function setOptions(array $options = []): self
-    {
-        $this->options = RedirectOptions::factory($options);
-        return $this;
-    }
-
     public function getRedirects(): array
     {
         return $this->redirects;
@@ -206,6 +188,22 @@ class Controller
     /**
      * Main redirect methods
      */
+    public function getOptions(): RedirectOptions
+    {
+        return $this->options;
+    }
+
+    public function getOption(string $option)
+    {
+        return $this->getOptions()->getOption($option);
+    }
+
+    protected function setOptions(array $options = []): self
+    {
+        $this->options = RedirectOptions::factory($options);
+        return $this;
+    }
+
     public function setOption(string $option, $value): self
     {
         $this->getOptions()->setOption($option, $value);
@@ -220,24 +218,6 @@ class Controller
     public function getForceHttps(): bool
     {
         return $this->getOption('forcehttps');
-    }
-
-    public function emitResponse(Response $response): bool
-    {
-        $response = $this->runHook('pre_redirect_filter', $response);
-        $emitter = new EmitterSapiEmitter();
-        $result = $emitter->emit($response);
-        $this->runHook('post_redirect_action', $response);
-        return $result;
-    }
-
-    public function emitResponseAndExit(Response $response): void
-    {
-        $result = $this->emitResponse($response);
-        if ($result === false) {
-            throw new \Exception('Could not send response.');
-        }
-        exit();
     }
 
     protected function getRedirectsFiltered(?bool $active = null, ?array $types = []): array
@@ -273,6 +253,15 @@ class Controller
             }
         }
         return $replaced;
+    }
+
+    protected function runHook(string $hook, $args = null)
+    {
+        if (!$this->isHookOnStack($hook)) {
+            return $args;
+        }
+        $callable = $this->getHook($hook);
+        return $callable($args);
     }
 
     public function redirectProcess(): ?Response
@@ -340,12 +329,21 @@ class Controller
         return $return;
     }
 
-    protected function runHook(string $hook, $args = null)
+    public function emitResponse(Response $response): bool
     {
-        if (!$this->isHookOnStack($hook)) {
-            return $args;
+        $response = $this->runHook('pre_redirect_filter', $response);
+        $emitter = new EmitterSapiEmitter();
+        $result = $emitter->emit($response);
+        $this->runHook('post_redirect_action', $response);
+        return $result;
+    }
+
+    public function emitResponseAndExit(Response $response): void
+    {
+        $result = $this->emitResponse($response);
+        if ($result === false) {
+            throw new \Exception('Could not send response.');
         }
-        $callable = $this->getHook($hook);
-        return $callable($args);
+        exit();
     }
 }
