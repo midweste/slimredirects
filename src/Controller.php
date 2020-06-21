@@ -2,7 +2,6 @@
 
 namespace Midweste\SlimRedirects;
 
-use Laminas\Diactoros\ServerRequestFactory as DiactorosServerRequestFactory;
 use Laminas\HttpHandlerRunner\Emitter\SapiEmitter as EmitterSapiEmitter;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface as Response;
