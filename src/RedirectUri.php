@@ -3,31 +3,40 @@
 
 namespace Midweste\SlimRedirects;
 
-use Laminas\Diactoros\Response\RedirectResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriInterface;
-use Slim\Http\Uri;
+use Slim\Psr7\Uri;
 
 class RedirectUri extends Uri
 {
     protected $uri;
     protected $statusCode;
+    protected $reasonPhrase = '';
 
-    public function __construct(UriInterface $uri, ?int $statusCode = 302)
+    public function __construct(UriInterface $uri, int $statusCode = 302)
     {
-        $this->setUri($uri);
         $this->withStatusCode($statusCode);
-        parent::__construct($uri);
+        $userInfo = explode(':', $this->getUserInfo());
+        parent::__construct(
+            $uri->getScheme(),
+            $uri->getHost(),
+            $uri->getPort(),
+            $uri->getPath(),
+            $uri->getQuery(),
+            $uri->getFragment(),
+            (!empty($userInfo[0])) ? $userInfo[0] : '',
+            (!empty($userInfo[1])) ? $userInfo[1] : ''
+        );
     }
 
-    public function getUri(): UriInterface
+    public function getReasonPhrase(): string
     {
-        return $this->uri;
+        return $this->reasonPhrase;
     }
 
-    protected function setUri(UriInterface $uri)
+    public function withReasonPhrase(string $reasonPhrase)
     {
-        $this->uri = $uri;
+        $this->reasonPhrase = $reasonPhrase;
         return $this;
     }
 
@@ -42,9 +51,10 @@ class RedirectUri extends Uri
         return $this;
     }
 
-    public function createResponse(RedirectUri $uri): ResponseInterface
+    public function toRedirectResponse(ResponseInterface $response = null): ResponseInterface
     {
-        $response = new RedirectResponse($uri->getUri(), $uri->getStatusCode());
+        $factory = new RedirectResponseFactory();
+        $response = $factory->createRedirectResponse($this, $response);
         return $response;
     }
 }

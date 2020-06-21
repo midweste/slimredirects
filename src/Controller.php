@@ -2,6 +2,7 @@
 
 namespace Midweste\SlimRedirects;
 
+use Laminas\Diactoros\ServerRequestFactory as DiactorosServerRequestFactory;
 use Laminas\HttpHandlerRunner\Emitter\SapiEmitter as EmitterSapiEmitter;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -220,7 +221,7 @@ class Controller
         return $this->getOption('forcehttps');
     }
 
-    protected function getRedirectsFiltered(?bool $active = null, ?array $types = []): array
+    protected function getRedirectsFiltered(bool $active = null, array $types = []): array
     {
         $redirects = [];
         $handlers = (!empty($types)) ? $types : $this->getTypeHandlerNames();
@@ -268,7 +269,7 @@ class Controller
     {
         $redirects = $this->getRedirectsFiltered(true);
         $redirectUri = new RedirectUri($this->getRequest()->getUri(), $this->getResponse()->getStatusCode());
-        $requestPath = urldecode($redirectUri->getUri()->getPath());
+        $requestPath = urldecode($redirectUri->getPath());
         $return = null;
 
         if ($this->getOption('enabled') === false) {
@@ -280,7 +281,7 @@ class Controller
             if ($redirectUri->getPort() == '80') {
                 $redirectUri = $redirectUri->withPort(null);
             }
-            $return = $redirectUri->createResponse($redirectUri);
+            $return = $redirectUri->toRedirectResponse();
         }
 
         if (empty($redirects) || in_array($requestPath, $this->getExcludes())) {
@@ -296,7 +297,7 @@ class Controller
             $redirectUri = $redirectUri
                 ->withPath($typeHandlerCallback($redirect->getDestination()))
                 ->withStatusCode($redirect->getHttpStatus());
-            return $redirectUri->createResponse($redirectUri);
+            return $redirectUri->toRedirectResponse();
         }
 
         $finalPath = '';
@@ -323,7 +324,7 @@ class Controller
                 $redirectUri = $redirectUri
                     ->withPath($finalPath)
                     ->withStatusCode($redirect->getHttpStatus());
-                return $redirectUri->createResponse($redirectUri);
+                return $redirectUri->toRedirectResponse();
             }
         }
         return $return;

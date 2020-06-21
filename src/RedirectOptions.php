@@ -11,7 +11,7 @@ class RedirectOptions
     private $forcehttps = false;
     private $wildcard = false;
 
-    public static function factory(?array $options = []): RedirectOptions
+    public static function factory(array $options = []): RedirectOptions
     {
         $self =  new self($options);
         foreach ($options as $option => $value) {
