@@ -277,9 +277,12 @@ class Controller
 
         if ($this->getOption('forcehttps') && $redirectUri->getScheme() !== 'https') {
             $redirectUri = $redirectUri->withScheme('https')->withStatusCode(302);
-            if ($redirectUri->getPort() == '80') {
-                $redirectUri = $redirectUri->withPort(null);
-            }
+            $return = $redirectUri->toRedirectResponse();
+        }
+
+        // remove port if somehow its present and we're using https
+        if ($redirectUri->getPort() == '80' && $redirectUri->getScheme('https')) {
+            $redirectUri = $redirectUri->withPort(null);
             $return = $redirectUri->toRedirectResponse();
         }
 
