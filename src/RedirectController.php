@@ -284,7 +284,8 @@ class RedirectController
         }
 
         // strip standard port on standard schemes
-        if (in_array($uri->getScheme(), ['http', 'https']) && $uri->getPort() == 80) {
+        // something strange is happening on when used through load balancer
+        if ($uri->getScheme() == 'http' || $uri->getScheme() == 'https') {
             $uri = $uri->withPort(null);
         }
 
