@@ -128,6 +128,7 @@ class RedirectController
         $array = [];
         foreach ($redirects as $redirect) {
             $r = ($redirect instanceof RedirectRule) ? $redirect : RedirectRule::factory($redirect);
+            $r->setSource(strtolower($r->getSource()));
             $array[$r->getSource()] = $r;
         }
         $this->redirects = $array;
@@ -275,15 +276,21 @@ class RedirectController
             return $return;
         }
 
-        if ($this->getOption('forcehttps') && $redirectUri->getScheme() !== 'https') {
-            // strip port if redirecting to https
-            if ($redirectUri->getPort() == '80') {
-                $redirectUri = $redirectUri->withPort(null);
-            }
-            $redirectUri = $redirectUri->withScheme('https')->withStatusCode(302);
+        // strip standard port on standard schemes
+        if (in_array($redirectUri->getScheme(), ['http', 'https']) && $redirectUri->getPort() == 80) {
+            $redirectUri = $redirectUri->withPort(null);
+        }
+
+        // force https
+        if ($this->getOption('forcehttps') && $redirectUri->getScheme() === 'http') {
+            $redirectUri = $redirectUri
+                ->withScheme('https')
+                ->withPort(null)
+                ->withStatusCode(302);
             $return = $redirectUri->toRedirectResponse();
         }
 
+        // bail on empty or excluded
         if (empty($redirects) || in_array($requestPath, $this->getExcludes())) {
             // allow for http to https even if no redirects exists or path excluded
             return $return;

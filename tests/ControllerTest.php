@@ -16,7 +16,7 @@ class SlimRedirectsTest extends TestCase
 {
 
     private $scheme = 'http';
-    private $port = '80';
+    private $port = 80;
     private $host = 'localhost';
     private $path = '/';
     private $query = 'one=value&another=value';
@@ -53,11 +53,12 @@ class SlimRedirectsTest extends TestCase
         $uri = (new UriFactory())->createUri($testUri);
 
         $server['SERVER_PROTOCOL'] = $uri->getScheme();
+        $server['SERVER_PORT'] = $uri->getPort();
         $server['HTTP_HOST'] = $uri->getHost();
         $server['REQUEST_URI'] = $uri->getPath();
         $server['QUERY_STRING'] = $uri->getQuery();
-        $server['REMOTE_ADDR'] = '127.0.0.1';
-        $server['REQUEST_METHOD'] = 'GET';
+        // $server['REMOTE_ADDR'] = '127.0.0.1';
+        // $server['REQUEST_METHOD'] = 'GET';
         $server['HTTP_USER_AGENT'] = 'phpunit';
         foreach ($server as $key => $value) {
             $_SERVER[$key] = $value;
