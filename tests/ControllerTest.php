@@ -1,6 +1,6 @@
 <?php
 
-use Midweste\SlimRedirects\Controller;
+use Midweste\SlimRedirects\RedirectController;
 use Midweste\SlimRedirects\RedirectRule;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\RequestInterface;
@@ -47,7 +47,7 @@ class SlimRedirectsTest extends TestCase
         return $response;
     }
 
-    private function slimRedirectController($uri = null, ?array $redirects = [], ?array $options = []): Controller
+    private function slimRedirectController($uri = null, ?array $redirects = [], ?array $options = []): RedirectController
     {
         $testUri = (!empty($uri)) ? $uri : $this->scheme . '://' . $this->host . ':' . $this->port . $this->path . '?' . $this->query;
         $uri = (new UriFactory())->createUri($testUri);
@@ -65,11 +65,11 @@ class SlimRedirectsTest extends TestCase
 
         $options = (!empty($options)) ? $options : $this->loadOptions();
         $request = $this->mockRequest($uri, $server);
-        $controller = new Controller($request, $this->mockResponse(), $redirects, $options);
+        $controller = new RedirectController($request, $this->mockResponse(), $redirects, $options);
         return $controller;
     }
 
-    private function slimRedirectWithController(Controller $controller): object
+    private function slimRedirectWithController(RedirectController $controller): object
     {
         $request = $controller->getRequest();
         $response = $controller->redirectProcess();
@@ -114,13 +114,13 @@ class SlimRedirectsTest extends TestCase
         ];
 
         $controller = $this->slimRedirectController('http://localhost/');
-        $this->assertInstanceOf(Controller::class, $controller);
+        $this->assertInstanceOf(RedirectController::class, $controller);
 
         $controller = $this->slimRedirectController('http://localhost/', [$rule]);
-        $this->assertInstanceOf(Controller::class, $controller);
+        $this->assertInstanceOf(RedirectController::class, $controller);
 
         $controller = $this->slimRedirectController('http://localhost/', [$rule], $this->loadOptions());
-        $this->assertInstanceOf(Controller::class, $controller);
+        $this->assertInstanceOf(RedirectController::class, $controller);
     }
 
     public function testCreateFactory()
@@ -431,13 +431,13 @@ class SlimRedirectsTest extends TestCase
 
     public function testCreateRequestFromGlobals()
     {
-        $request = Controller::createRequestFromGlobals();
+        $request = RedirectController::createRequestFromGlobals();
         $this->assertInstanceOf(RequestInterface::class, $request);
     }
 
     public function testCreateResponse()
     {
-        $request = Controller::createResponse();
+        $request = RedirectController::createResponse();
         $this->assertInstanceOf(ResponseInterface::class, $request);
     }
 
