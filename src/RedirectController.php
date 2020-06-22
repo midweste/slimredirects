@@ -265,12 +265,18 @@ class RedirectController
         return $callable($args);
     }
 
+    protected function isExcluded(string $path): bool
+    {
+        // TODO pattern matching, begins with, wildcards
+        return in_array($path, $this->getExcludes());
+    }
+
     public function redirectProcess(): ?Response
     {
         $redirects = $this->getRedirectsFiltered(true);
         $uri = new RedirectUri($this->getRequest()->getUri(), $this->getResponse()->getStatusCode());
         $path = urldecode($uri->getPath());
-        $noRedirectsOrExcluded = empty($redirects) || in_array($path, $this->getExcludes());
+        $noRedirectsOrExcluded = empty($redirects) || $this->isExcluded($path);
         $nullOrResponse = null;
 
         if ($this->getOption('enabled') === false) {
@@ -318,16 +324,19 @@ class RedirectController
                 continue;
             }
 
+            // TODO refactor into matching method
             $destination = $redirect->getDestination();
             $sourcePattern = rtrim(str_replace('*', '(.*)', $source), '/');
             $sourcePatternRegex = '/^' . str_replace('/', '\/', $sourcePattern) . '/';
-            $output = preg_replace($sourcePatternRegex, $this->parseDestination($destination), $path);
+            $regexResult = preg_replace($sourcePatternRegex, $this->parseDestination($destination), $path);
+
             // non matching rule
-            if ($output === $path) {
+            if ($regexResult === $path) {
                 continue;
             }
+
             $typeHandlerCallback = $this->getTypeHandler($redirect->getType());
-            $newPath = $typeHandlerCallback($output);
+            $newPath = $typeHandlerCallback($regexResult);
 
             // redirect. the second condition here prevents redirect loops as a result of wildcards.
             if ($newPath !== '' && trim($newPath, '/') !== trim($path, '/')) {
