@@ -270,10 +270,11 @@ class RedirectController
         $redirects = $this->getRedirectsFiltered(true);
         $redirectUri = new RedirectUri($this->getRequest()->getUri(), $this->getResponse()->getStatusCode());
         $requestPath = urldecode($redirectUri->getPath());
-        $return = null;
+        $emptyOrExcluded = empty($redirects) || in_array($requestPath, $this->getExcludes());
+        $nullOrResponse = null;
 
         if ($this->getOption('enabled') === false) {
-            return $return;
+            return $nullOrResponse;
         }
 
         // strip standard port on standard schemes
@@ -287,13 +288,16 @@ class RedirectController
                 ->withScheme('https')
                 ->withPort(null)
                 ->withStatusCode(302);
-            $return = $redirectUri->toRedirectResponse();
+            if ($emptyOrExcluded) {
+                return $redirectUri->toRedirectResponse();
+            }
+            $nullOrResponse = $redirectUri->toRedirectResponse();
         }
 
         // bail on empty or excluded
-        if (empty($redirects) || in_array($requestPath, $this->getExcludes())) {
+        if ($emptyOrExcluded) {
             // allow for http to https even if no redirects exists or path excluded
-            return $return;
+            return $nullOrResponse;
         }
 
         // direct match
@@ -334,7 +338,7 @@ class RedirectController
                 return $redirectUri->toRedirectResponse();
             }
         }
-        return $return;
+        return $nullOrResponse;
     }
 
     public function emitResponse(Response $response): bool
