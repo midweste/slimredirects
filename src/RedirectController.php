@@ -268,9 +268,9 @@ class RedirectController
     public function redirectProcess(): ?Response
     {
         $redirects = $this->getRedirectsFiltered(true);
-        $redirectUri = new RedirectUri($this->getRequest()->getUri(), $this->getResponse()->getStatusCode());
-        $requestPath = urldecode($redirectUri->getPath());
-        $emptyOrExcluded = empty($redirects) || in_array($requestPath, $this->getExcludes());
+        $uri = new RedirectUri($this->getRequest()->getUri(), $this->getResponse()->getStatusCode());
+        $path = urldecode($uri->getPath());
+        $noRedirectsOrExcluded = empty($redirects) || in_array($path, $this->getExcludes());
         $nullOrResponse = null;
 
         if ($this->getOption('enabled') === false) {
@@ -278,64 +278,63 @@ class RedirectController
         }
 
         // strip standard port on standard schemes
-        if (in_array($redirectUri->getScheme(), ['http', 'https']) && $redirectUri->getPort() == 80) {
-            $redirectUri = $redirectUri->withPort(null);
+        if (in_array($uri->getScheme(), ['http', 'https']) && $uri->getPort() == 80) {
+            $uri = $uri->withPort(null);
         }
 
         // force https
-        if ($this->getOption('forcehttps') && $redirectUri->getScheme() === 'http') {
-            $redirectUri = $redirectUri
+        if ($this->getOption('forcehttps') && $uri->getScheme() === 'http') {
+            $uri = $uri
                 ->withScheme('https')
                 ->withPort(null)
                 ->withStatusCode(302);
-            if ($emptyOrExcluded) {
-                return $redirectUri->toRedirectResponse();
+            if ($noRedirectsOrExcluded) {
+                return $uri->toRedirectResponse();
             }
-            $nullOrResponse = $redirectUri->toRedirectResponse();
+            $nullOrResponse = $uri->toRedirectResponse();
         }
 
         // bail on empty or excluded
-        if ($emptyOrExcluded) {
+        if ($noRedirectsOrExcluded) {
             // allow for http to https even if no redirects exists or path excluded
             return $nullOrResponse;
         }
 
         // direct match
-        // TODO get redirects only without wildcard
-        if (!empty($redirects[$requestPath])) {
-            $redirect = $redirects[$requestPath];
+        if (!empty($redirects[$path])) {
+            $redirect = $redirects[$path];
             $typeHandlerCallback = $this->getTypeHandler($redirect->getType());
-            $redirectUri = $redirectUri
+            $uri = $uri
                 ->withPath($typeHandlerCallback($redirect->getDestination()))
                 ->withStatusCode($redirect->getHttpStatus());
-            return $redirectUri->toRedirectResponse();
+            return $uri->toRedirectResponse();
         }
 
-        $finalPath = '';
+        $newPath = '';
         foreach ($redirects as $redirect) {
 
-            $rSource = $redirect->getSource();
-            if (strpos($rSource, '*') === false) {
+            $source = $redirect->getSource();
+            if (strpos($source, '*') === false) {
                 continue;
             }
 
-            $rDestination = $redirect->getDestination();
-            $rSourcePattern = rtrim(str_replace('*', '(.*)', $rSource), '/');
-            $rSourcePatternRegex = '/^' . str_replace('/', '\/', $rSourcePattern) . '/';
-            $output = preg_replace($rSourcePatternRegex, $this->parseDestination($rDestination), $requestPath);
+            $destination = $redirect->getDestination();
+            $sourcePattern = rtrim(str_replace('*', '(.*)', $source), '/');
+            $sourcePatternRegex = '/^' . str_replace('/', '\/', $sourcePattern) . '/';
+            $output = preg_replace($sourcePatternRegex, $this->parseDestination($destination), $path);
             // non matching rule
-            if ($output === $requestPath) {
+            if ($output === $path) {
                 continue;
             }
             $typeHandlerCallback = $this->getTypeHandler($redirect->getType());
-            $finalPath = $typeHandlerCallback($output);
+            $newPath = $typeHandlerCallback($output);
 
             // redirect. the second condition here prevents redirect loops as a result of wildcards.
-            if ($finalPath !== '' && trim($finalPath, '/') !== trim($requestPath, '/')) {
-                $redirectUri = $redirectUri
-                    ->withPath($finalPath)
+            if ($newPath !== '' && trim($newPath, '/') !== trim($path, '/')) {
+                $uri = $uri
+                    ->withPath($newPath)
                     ->withStatusCode($redirect->getHttpStatus());
-                return $redirectUri->toRedirectResponse();
+                return $uri->toRedirectResponse();
             }
         }
         return $nullOrResponse;
