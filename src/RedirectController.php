@@ -30,8 +30,8 @@ class RedirectController
         $this->setOptions($options);
 
         // built in handlers
-        $this->setTypeHandler('path', function (RedirectUri $uri, string $path, RedirectRule $rule, RequestInterface $request) {
-            return $this->pathTypeHandler($uri, $path, $rule, $request);
+        $this->setTypeHandler('path', function (RedirectUri $uri, RedirectRule $rule, RequestInterface $request) {
+            return $this->pathTypeHandler($uri, $rule, $request);
         });
         // $this->setTypeHandler('domain', function (string $destination) {
         //     return $destination;
@@ -187,11 +187,8 @@ class RedirectController
         return $this;
     }
 
-    protected function pathTypeHandler(RedirectUri $uri, string $path, RedirectRule $rule, RequestInterface $request): RedirectUri
+    protected function pathTypeHandler(RedirectUri $uri, RedirectRule $rule, RequestInterface $request): RedirectUri
     {
-        $uri = $uri
-            ->withStatusCode($rule->getHttpStatus())
-            ->withPath($path);
         return $uri;
     }
 
@@ -320,7 +317,8 @@ class RedirectController
         if (!empty($redirects[$path])) {
             $redirect = $redirects[$path];
             $typeHandlerCallback = $this->getTypeHandler($redirect->getType());
-            $uri = $typeHandlerCallback($uri, $redirect->getDestination(), $redirect, $this->getRequest());
+            $uri = $uri->withPath($redirect->getDestination())->withStatusCode($redirect->getHttpStatus());
+            $uri = $typeHandlerCallback($uri, $redirect, $this->getRequest());
             return $uri->toRedirectResponse();
         }
 
@@ -344,7 +342,8 @@ class RedirectController
             }
 
             $typeHandlerCallback = $this->getTypeHandler($redirect->getType());
-            $uri = $typeHandlerCallback($uri, $regexResult, $redirect, $this->getRequest());
+            $uri = $uri->withPath($regexResult)->withStatusCode($redirect->getHttpStatus());
+            $uri = $typeHandlerCallback($uri, $redirect, $this->getRequest());
             $newPath = (string) $uri;
 
             // redirect. the second condition here prevents redirect loops as a result of wildcards.
