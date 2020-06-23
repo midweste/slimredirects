@@ -94,6 +94,11 @@ class RedirectRule
         return $this;
     }
 
+    public function isWildcard(): bool
+    {
+        return (strpos($this->source, '*') !== false) ? true : false;
+    }
+
     public function toArray(): array
     {
         return \get_object_vars($this);

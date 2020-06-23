@@ -67,6 +67,20 @@ class RedirectRuleTest extends TestCase
         $this->assertInstanceOf(RedirectRule::class, $rule);
     }
 
+    public function testIsWildcard()
+    {
+        $rule = [
+            "id" => "1",
+            "source" => "/wild/*/card",
+            "type" => "path",
+            "destination" => "/wildcard/*",
+            "httpStatus" => 301,
+            "active" => 1
+        ];
+        $redirectRule = RedirectRule::factory($rule);
+        $this->assertTrue($redirectRule->isWildcard());
+    }
+
     public function testToArray()
     {
         $rule = [

@@ -359,6 +359,27 @@ class SlimRedirectsTest extends TestCase
         $this->assertEquals('https://localhost/wildcard/test?query=string', $result->location);
     }
 
+    public function testNoCacheOn302()
+    {
+        // 'Cache-Control', 'no-store,no-cache'
+        // 'Pragma', 'no-cache'
+        // 'Expires', strtotime('Yesterday')
+        $rule = [
+            "id" => "1",
+            "source" => "/",
+            "type" => "path",
+            "destination" => "/root",
+            "httpStatus" => 302,
+            "active" => 1
+        ];
+        $result = $this->slimRedirect('https://localhost/?query=string', [$rule]);
+        $this->assertEquals($rule['httpStatus'], $result->responseStatus);
+        $this->assertEquals($result->location, 'https://localhost/root?query=string');
+        $this->assertEquals('no-store,no-cache', $result->response->getHeaderLine('Cache-Control'));
+        $this->assertEquals('no-cache', $result->response->getHeaderLine('Pragma'));
+        $this->assertGreaterThanOrEqual(strtotime('Yesterday'), strtotime($result->response->getHeaderLine('Expires')));
+    }
+
     public function testParseDestination()
     {
         $rule = [

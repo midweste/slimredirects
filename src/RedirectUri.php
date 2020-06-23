@@ -5,6 +5,7 @@ namespace Midweste\SlimRedirects;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriInterface;
+use Slim\HttpCache\Cache;
 use Slim\Psr7\Uri;
 
 class RedirectUri extends Uri
@@ -55,6 +56,12 @@ class RedirectUri extends Uri
     {
         $factory = new RedirectResponseFactory();
         $response = $factory->createRedirectResponse($this, $response);
+        if ($response->getStatusCode() == 302) {
+            $cacheProvider = new \Slim\HttpCache\CacheProvider();
+            $response = $cacheProvider->denyCache($response);
+            $response = $response->withHeader('Pragma', 'no-cache');
+            $response = $cacheProvider->withExpires($response, strtotime('Yesterday'));
+        }
         return $response;
     }
 }
