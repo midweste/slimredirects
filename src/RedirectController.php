@@ -31,10 +31,7 @@ class RedirectController
 
         // built in handlers
         $this->setTypeHandler('path', function (RedirectUri $uri, string $path, RedirectRule $rule, RequestInterface $request) {
-            $uri = $uri
-                ->withStatusCode($rule->getHttpStatus())
-                ->withPath($path);
-            return $uri;
+            return $this->pathTypeHandler($uri, $path, $rule, $request);
         });
         // $this->setTypeHandler('domain', function (string $destination) {
         //     return $destination;
@@ -190,6 +187,14 @@ class RedirectController
         return $this;
     }
 
+    protected function pathTypeHandler(RedirectUri $uri, string $path, RedirectRule $rule, RequestInterface $request): RedirectUri
+    {
+        $uri = $uri
+            ->withStatusCode($rule->getHttpStatus())
+            ->withPath($path);
+        return $uri;
+    }
+
     /**
      * Main redirect methods
      */
@@ -339,15 +344,11 @@ class RedirectController
             }
 
             $typeHandlerCallback = $this->getTypeHandler($redirect->getType());
-            $regexUri = RedirectUri::factory($regexResult, $redirect->getHttpStatus());
-            $newPath = (string) $typeHandlerCallback($regexUri, $regexResult, $redirect, $this->getRequest());
-            //$newPath = $typeHandlerCallback($regexResult);
+            $uri = $typeHandlerCallback($uri, $regexResult, $redirect, $this->getRequest());
+            $newPath = (string) $uri;
 
             // redirect. the second condition here prevents redirect loops as a result of wildcards.
             if ($newPath !== '' && trim($newPath, '/') !== trim($path, '/')) {
-                $uri = $uri
-                    ->withPath($newPath)
-                    ->withStatusCode($redirect->getHttpStatus());
                 return $uri->toRedirectResponse();
             }
         }
