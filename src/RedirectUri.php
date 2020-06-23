@@ -5,7 +5,7 @@ namespace Midweste\SlimRedirects;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriInterface;
-use Slim\HttpCache\Cache;
+use Slim\Psr7\Factory\UriFactory;
 use Slim\Psr7\Uri;
 
 class RedirectUri extends Uri
@@ -28,6 +28,12 @@ class RedirectUri extends Uri
             (!empty($userInfo[0])) ? $userInfo[0] : '',
             (!empty($userInfo[1])) ? $userInfo[1] : ''
         );
+    }
+
+    public static function factory(string $uri, int $statusCode = 302): self
+    {
+        $uri = (new UriFactory())->createUri($uri);
+        return new self($uri, $statusCode);
     }
 
     public function getReasonPhrase(): string

@@ -8,6 +8,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Psr7\Factory\ResponseFactory;
 use Slim\Psr7\Factory\ServerRequestFactory;
+use Slim\Psr7\Factory\UriFactory;
 
 class RedirectController
 {
@@ -29,8 +30,11 @@ class RedirectController
         $this->setOptions($options);
 
         // built in handlers
-        $this->setTypeHandler('path', function (string $destination) {
-            return $destination;
+        $this->setTypeHandler('path', function (RedirectUri $uri, string $path, RedirectRule $rule, RequestInterface $request) {
+            $uri = $uri
+                ->withStatusCode($rule->getHttpStatus())
+                ->withPath($path);
+            return $uri;
         });
         // $this->setTypeHandler('domain', function (string $destination) {
         //     return $destination;
@@ -311,9 +315,7 @@ class RedirectController
         if (!empty($redirects[$path])) {
             $redirect = $redirects[$path];
             $typeHandlerCallback = $this->getTypeHandler($redirect->getType());
-            $uri = $uri
-                ->withPath($typeHandlerCallback($redirect->getDestination()))
-                ->withStatusCode($redirect->getHttpStatus());
+            $uri = $typeHandlerCallback($uri, $redirect->getDestination(), $redirect, $this->getRequest());
             return $uri->toRedirectResponse();
         }
 
@@ -337,7 +339,9 @@ class RedirectController
             }
 
             $typeHandlerCallback = $this->getTypeHandler($redirect->getType());
-            $newPath = $typeHandlerCallback($regexResult);
+            $regexUri = RedirectUri::factory($regexResult, $redirect->getHttpStatus());
+            $newPath = (string) $typeHandlerCallback($regexUri, $regexResult, $redirect, $this->getRequest());
+            //$newPath = $typeHandlerCallback($regexResult);
 
             // redirect. the second condition here prevents redirect loops as a result of wildcards.
             if ($newPath !== '' && trim($newPath, '/') !== trim($path, '/')) {
