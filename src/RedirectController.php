@@ -40,11 +40,11 @@ class RedirectController
 
     public static function factory(Request $request, Response $response, array $redirects, array $options = []): self
     {
-        static $self;
+        // static $self;
         $called = get_called_class();
-        if ($self instanceof $called) {
-            return $self;
-        }
+        // if ($self instanceof $called) {
+        //     return $self;
+        // }
 
         $self = new $called($request, $response, $redirects, $options);
         return $self;
@@ -281,7 +281,7 @@ class RedirectController
     {
         $redirects = $this->getRedirectsFiltered(true);
         $uri = new RedirectUri($this->getRequest()->getUri(), $this->getResponse()->getStatusCode());
-        $path = urldecode($uri->getPath());
+        $path = strtolower($uri->getPath());
         $noRedirectsOrExcluded = empty($redirects) || $this->isExcluded($path);
         $nullOrResponse = null;
 
