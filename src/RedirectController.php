@@ -277,11 +277,19 @@ class RedirectController
         return in_array($path, $this->getExcludes());
     }
 
+    protected function normalizePath(string $path): string
+    {
+        if ($path == '' || $path === '/') {
+            return '/';
+        }
+        return rtrim(strtolower($path), '/');
+    }
+
     public function redirectProcess(): ?Response
     {
         $redirects = $this->getRedirectsFiltered(true);
         $uri = new RedirectUri($this->getRequest()->getUri(), $this->getResponse()->getStatusCode());
-        $path = strtolower($uri->getPath());
+        $path = $this->normalizePath($uri->getPath());
         $noRedirectsOrExcluded = empty($redirects) || $this->isExcluded($path);
         $nullOrResponse = null;
 
