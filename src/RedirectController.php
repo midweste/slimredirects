@@ -129,7 +129,7 @@ class RedirectController
         $array = [];
         foreach ($redirects as $redirect) {
             $r = ($redirect instanceof RedirectRule) ? $redirect : RedirectRule::factory($redirect);
-            $r->setSource(strtolower($r->getSource()));
+            $r->setSource($this->normalizePath($r->getSource()));
             $array[$r->getSource()] = $r;
         }
         $this->redirects = $array;
