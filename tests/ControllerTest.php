@@ -325,13 +325,70 @@ class SlimRedirectsTest extends TestCase
             "id" => "1",
             "source" => "/",
             "type" => "path",
-            "destination" => "/root",
+            "destination" => "/root?new=querystring",
             "httpStatus" => 302,
             "active" => 1
         ];
         $result = $this->slimRedirect('https://localhost/?query=string', [$rule]);
         $this->assertEquals($rule['httpStatus'], $result->responseStatus);
-        $this->assertEquals($result->location, 'https://localhost/root?query=string');
+        $this->assertEquals($result->location, 'https://localhost/root?new=querystring&query=string');
+    }
+
+    public function testTrailingSlash()
+    {
+        $rule = [
+            "id" => "1",
+            "source" => "/",
+            "type" => "path",
+            "destination" => "/root/?new=querystring",
+            "httpStatus" => 302,
+            "active" => 1
+        ];
+        $result = $this->slimRedirect('https://localhost/?query=string', [$rule]);
+        $this->assertEquals($rule['httpStatus'], $result->responseStatus);
+        $this->assertEquals($result->location, 'https://localhost/root/?new=querystring&query=string');
+    }
+
+    public function testCombinedQsOverwrite()
+    {
+        $rule = [
+            "id" => "1",
+            "source" => "/",
+            "type" => "path",
+            "destination" => "/root/?key=newvalue",
+            "httpStatus" => 302,
+            "active" => 1
+        ];
+        $result = $this->slimRedirect('https://localhost/?key=value&other=value', [$rule]);
+        $this->assertEquals($rule['httpStatus'], $result->responseStatus);
+        $this->assertEquals($result->location, 'https://localhost/root/?key=newvalue&other=value');
+    }
+
+    public function testTrailingSlashOnSource()
+    {
+        $rule = [
+            "id" => "1",
+            "source" => "/trailing/",
+            "type" => "path",
+            "destination" => "/root/?new=querystring",
+            "httpStatus" => 302,
+            "active" => 1
+        ];
+        $result = $this->slimRedirect('https://localhost/trailing?query=string', [$rule]);
+        $this->assertEquals($rule['httpStatus'], $result->responseStatus);
+        $this->assertEquals($result->location, 'https://localhost/root/?new=querystring&query=string');
+
+        $rule = [
+            "id" => "1",
+            "source" => "/trailing",
+            "type" => "path",
+            "destination" => "/root/?new=querystring",
+            "httpStatus" => 302,
+            "active" => 1
+        ];
+        $result = $this->slimRedirect('https://localhost/trailing/?query=string', [$rule]);
+        $this->assertEquals($rule['httpStatus'], $result->responseStatus);
+        $this->assertEquals($result->location, 'https://localhost/root/?new=querystring&query=string');
     }
 
     public function testRedirectSimpleWildcardPath()

@@ -65,6 +65,11 @@ class RedirectRule
         return $this->destination;
     }
 
+    public function getDestinationUri(): RedirectUri
+    {
+        return RedirectUri::factory($this->getDestination(), $this->getHttpStatus());
+    }
+
     public function setDestination(string $destination): self
     {
         $this->destination = $destination;
@@ -87,6 +92,10 @@ class RedirectRule
         return $this->source;
     }
 
+    public function getSourceUri(): RedirectUri
+    {
+        return RedirectUri::factory($this->getSource(), $this->getHttpStatus());
+    }
 
     public function setSource(string $source): self
     {

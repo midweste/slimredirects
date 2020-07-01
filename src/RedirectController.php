@@ -8,7 +8,6 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Psr7\Factory\ResponseFactory;
 use Slim\Psr7\Factory\ServerRequestFactory;
-use Slim\Psr7\Factory\UriFactory;
 
 class RedirectController
 {
@@ -285,6 +284,28 @@ class RedirectController
         return rtrim(strtolower($path), '/');
     }
 
+    protected function mergeRuleIntoUri(RedirectRule $rule, RedirectUri $uri): RedirectUri
+    {
+        $destination = $rule->getDestinationUri();
+        $uri = $uri
+            ->withPath($destination->getPath())
+            ->withStatusCode($rule->getHttpStatus());
+        if (!empty($uri->getQuery())) {
+            parse_str($destination->getQuery(), $destinationQs);
+            parse_str($uri->getQuery(), $sourceQs);
+            $combinedQs = \array_replace_recursive($sourceQs, $destinationQs);
+            ksort($combinedQs);
+            $uri = $uri->withQuery(\http_build_query($combinedQs));
+        }
+        if (!empty($uri->getFragment())) {
+            $uri = $uri->withFragment($uri->getFragment());
+        }
+        if (!empty($uri->getUserInfo())) {
+            $uri = $uri->withUserInfo($uri->getUserInfo());
+        }
+        return $uri;
+    }
+
     public function redirectProcess(): ?Response
     {
         $redirects = $this->getRedirectsFiltered(true);
@@ -324,8 +345,8 @@ class RedirectController
         // direct match
         if (!empty($redirects[$path])) {
             $redirect = $redirects[$path];
+            $uri = $this->mergeRuleIntoUri($redirect, $uri);
             $typeHandlerCallback = $this->getTypeHandler($redirect->getType());
-            $uri = $uri->withPath($redirect->getDestination())->withStatusCode($redirect->getHttpStatus());
             $uri = $typeHandlerCallback($uri, $redirect, $this->getRequest());
             return $uri->toRedirectResponse();
         }
