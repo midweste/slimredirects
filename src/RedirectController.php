@@ -6,6 +6,7 @@ use Laminas\HttpHandlerRunner\Emitter\SapiEmitter as EmitterSapiEmitter;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\UriInterface;
 use Slim\Psr7\Factory\ResponseFactory;
 use Slim\Psr7\Factory\ServerRequestFactory;
 
@@ -128,8 +129,7 @@ class RedirectController
         $array = [];
         foreach ($redirects as $redirect) {
             $r = ($redirect instanceof RedirectRule) ? $redirect : RedirectRule::factory($redirect);
-            $r->setSource($this->normalizePath($r->getSource()));
-            $array[$r->getSource()] = $r;
+            $array[$r->getSourceUri()->getPathNormalized()] = $r;
         }
         $this->redirects = $array;
         return $this;
@@ -276,14 +276,6 @@ class RedirectController
         return in_array($path, $this->getExcludes());
     }
 
-    protected function normalizePath(string $path): string
-    {
-        if ($path == '' || $path === '/') {
-            return '/';
-        }
-        return rtrim(strtolower($path), '/');
-    }
-
     protected function mergeRuleIntoUri(RedirectRule $rule, RedirectUri $uri): RedirectUri
     {
         $destination = $rule->getDestinationUri();
@@ -317,7 +309,7 @@ class RedirectController
     {
         $redirects = $this->getRedirectsFiltered(true);
         $uri = new RedirectUri($this->getRequest()->getUri(), $this->getResponse()->getStatusCode());
-        $path = $this->normalizePath($uri->getPath());
+        $path = $uri->getPathNormalized();
         $noRedirectsOrExcluded = empty($redirects) || $this->isExcluded($path);
         $nullOrResponse = null;
 
@@ -353,22 +345,24 @@ class RedirectController
         if (!empty($redirects[$path])) {
             $redirect = $redirects[$path];
             $uri = $this->mergeRuleIntoUri($redirect, $uri);
+
             $typeHandlerCallback = $this->getTypeHandler($redirect->getType());
             $uri = $typeHandlerCallback($uri, $redirect, $this->getRequest());
+
             return $uri->toRedirectResponse();
         }
 
         $newPath = '';
-        foreach ($redirects as $redirect) {
+        foreach ($redirects as $sourcePath => $redirect) {
 
-            $source = $redirect->getSource();
-            if (strpos($source, '*') === false) {
+            $sourcePath = urldecode($sourcePath);
+            if (strpos($sourcePath, '*') === false) {
                 continue;
             }
 
             // TODO refactor into matching method
             $destination = $redirect->getDestination();
-            $sourcePattern = rtrim(str_replace('*', '(.*)', $source), '/');
+            $sourcePattern = rtrim(str_replace('*', '(.*)', $sourcePath), '/');
             $sourcePatternRegex = '/^' . str_replace('/', '\/', $sourcePattern) . '/';
             $regexPath = preg_replace($sourcePatternRegex, $this->parseDestination($destination), $path);
 
@@ -377,10 +371,11 @@ class RedirectController
                 continue;
             }
 
-            $typeHandlerCallback = $this->getTypeHandler($redirect->getType());
             $regexRule = clone $redirect;
             $regexRule = $regexRule->setDestination($regexPath);
             $uri = $this->mergeRuleIntoUri($regexRule, $uri);
+
+            $typeHandlerCallback = $this->getTypeHandler($redirect->getType());
             $uri = $typeHandlerCallback($uri, $regexRule, $this->getRequest());
 
             // the second condition here prevents redirect loops as a result of wildcards.

@@ -58,6 +58,16 @@ class RedirectUri extends Uri
         return $this;
     }
 
+    public function getPathNormalized(): string
+    {
+        $path = $this->getPath();
+        if ($path == '' || $path === '/') {
+            return '/';
+        }
+        $path = rtrim(strtolower($path), '/');
+        return $path;
+    }
+
     public function toRedirectResponse(ResponseInterface $response = null): ResponseInterface
     {
         $factory = new RedirectResponseFactory();

@@ -347,6 +347,18 @@ class SlimRedirectsTest extends TestCase
         $result = $this->slimRedirect('https://localhost/?query=string', [$rule]);
         $this->assertEquals($rule['httpStatus'], $result->responseStatus);
         $this->assertEquals($result->location, 'https://localhost/root/?new=querystring&query=string');
+
+        $rule = [
+            "id" => "1",
+            "source" => "/wild/card/*/?old=querystring",
+            "type" => "path",
+            "destination" => "/root/?new=querystring",
+            "httpStatus" => 302,
+            "active" => 1
+        ];
+        $result = $this->slimRedirect('https://localhost/wild/card/random?query=string', [$rule]);
+        $this->assertEquals($rule['httpStatus'], $result->responseStatus);
+        $this->assertEquals($result->location, 'https://localhost/root/?new=querystring&query=string');
     }
 
     public function testOnlyDestinationHasQs()
