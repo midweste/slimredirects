@@ -290,19 +290,26 @@ class RedirectController
         $uri = $uri
             ->withPath($destination->getPath())
             ->withStatusCode($rule->getHttpStatus());
-        if (!empty($uri->getQuery())) {
+
+        // default is combined querystring with rule overridding request
+        if (!empty($uri->getQuery()) || !empty($destination->getQuery())) {
             parse_str($destination->getQuery(), $destinationQs);
             parse_str($uri->getQuery(), $sourceQs);
             $combinedQs = \array_replace_recursive($sourceQs, $destinationQs);
             ksort($combinedQs);
             $uri = $uri->withQuery(\http_build_query($combinedQs));
         }
-        if (!empty($uri->getFragment())) {
-            $uri = $uri->withFragment($uri->getFragment());
+
+        // rule fragment overrides request fragment
+        if (!empty($destination->getFragment())) {
+            $uri = $uri->withFragment($destination->getFragment());
         }
+
+        // rule user info overrides request user info
         if (!empty($uri->getUserInfo())) {
             $uri = $uri->withUserInfo($uri->getUserInfo());
         }
+
         return $uri;
     }
 

@@ -349,6 +349,21 @@ class SlimRedirectsTest extends TestCase
         $this->assertEquals($result->location, 'https://localhost/root/?new=querystring&query=string');
     }
 
+    public function testOnlyDestinationHasQs()
+    {
+        $rule = [
+            "id" => "1",
+            "source" => "/",
+            "type" => "path",
+            "destination" => "/root/?key=newvalue",
+            "httpStatus" => 302,
+            "active" => 1
+        ];
+        $result = $this->slimRedirect('https://localhost', [$rule]);
+        $this->assertEquals($rule['httpStatus'], $result->responseStatus);
+        $this->assertEquals($result->location, 'https://localhost/root/?key=newvalue');
+    }
+
     public function testCombinedQsOverwrite()
     {
         $rule = [
