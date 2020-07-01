@@ -363,19 +363,21 @@ class RedirectController
             $destination = $redirect->getDestination();
             $sourcePattern = rtrim(str_replace('*', '(.*)', $source), '/');
             $sourcePatternRegex = '/^' . str_replace('/', '\/', $sourcePattern) . '/';
-            $regexResult = preg_replace($sourcePatternRegex, $this->parseDestination($destination), $path);
+            $regexPath = preg_replace($sourcePatternRegex, $this->parseDestination($destination), $path);
 
             // non matching rule
-            if ($regexResult === $path) {
+            if ($regexPath === $path) {
                 continue;
             }
 
             $typeHandlerCallback = $this->getTypeHandler($redirect->getType());
-            $uri = $uri->withPath($regexResult)->withStatusCode($redirect->getHttpStatus());
-            $uri = $typeHandlerCallback($uri, $redirect, $this->getRequest());
-            $newPath = (string) $uri;
+            $regexRule = clone $redirect;
+            $regexRule = $regexRule->setDestination($regexPath);
+            $uri = $this->mergeRuleIntoUri($regexRule, $uri);
+            $uri = $typeHandlerCallback($uri, $regexRule, $this->getRequest());
 
-            // redirect. the second condition here prevents redirect loops as a result of wildcards.
+            // the second condition here prevents redirect loops as a result of wildcards.
+            $newPath = $uri->getPath();
             if ($newPath !== '' && trim($newPath, '/') !== trim($path, '/')) {
                 return $uri->toRedirectResponse();
             }
