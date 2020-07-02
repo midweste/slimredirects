@@ -276,33 +276,42 @@ class RedirectController
         return in_array($path, $this->getExcludes());
     }
 
-    protected function mergeRuleIntoUri(RedirectRule $rule, RedirectUri $uri): RedirectUri
+    protected function mergeRuleIntoUri(RedirectRule $rule, RedirectUri $redirectUri): RedirectUri
     {
-        $destination = $rule->getDestinationUri();
-        $uri = $uri
-            ->withPath($destination->getPath())
+        $ruleUri = $rule->getDestinationUri();
+        $redirectUri = $redirectUri
+            ->withPath($ruleUri->getPath())
             ->withStatusCode($rule->getHttpStatus());
 
+        // change host if needed
+        $ruleHost = $ruleUri->getHost();
+        if (!empty($ruleHost) && $ruleHost <> $redirectUri->getHost()) {
+            $redirectUri = $redirectUri->withHost($ruleHost);
+            if ($redirectUri->getPath() == '/') {
+                $redirectUri = $redirectUri->withPath('');
+            }
+        }
+
         // default is combined querystring with rule overridding request
-        if (!empty($uri->getQuery()) || !empty($destination->getQuery())) {
-            parse_str($destination->getQuery(), $destinationQs);
-            parse_str($uri->getQuery(), $sourceQs);
+        if (!empty($redirectUri->getQuery()) || !empty($ruleUri->getQuery())) {
+            parse_str($ruleUri->getQuery(), $destinationQs);
+            parse_str($redirectUri->getQuery(), $sourceQs);
             $combinedQs = \array_replace_recursive($sourceQs, $destinationQs);
             ksort($combinedQs);
-            $uri = $uri->withQuery(\http_build_query($combinedQs));
+            $redirectUri = $redirectUri->withQuery(\http_build_query($combinedQs));
         }
 
         // rule fragment overrides request fragment
-        if (!empty($destination->getFragment())) {
-            $uri = $uri->withFragment($destination->getFragment());
+        if (!empty($ruleUri->getFragment())) {
+            $redirectUri = $redirectUri->withFragment($ruleUri->getFragment());
         }
 
         // rule user info overrides request user info
-        if (!empty($uri->getUserInfo())) {
-            $uri = $uri->withUserInfo($uri->getUserInfo());
+        if (!empty($redirectUri->getUserInfo())) {
+            $redirectUri = $redirectUri->withUserInfo($redirectUri->getUserInfo());
         }
 
-        return $uri;
+        return $redirectUri;
     }
 
     public function redirectProcess(): ?Response

@@ -140,6 +140,36 @@ class SlimRedirectsTest extends TestCase
         $this->assertEquals($instance, $cachedInstance);
     }
 
+    public function testFullUrlPathRedirect()
+    {
+        $rule = [
+            "id" => "1",
+            "source" => "/",
+            "type" => "path",
+            "destination" => "https://example.com?new=querystring",
+            "httpStatus" => 302,
+            "active" => 1
+        ];
+        $result = $this->slimRedirect('https://localhost', [$rule]);
+        $this->assertEquals($rule['httpStatus'], $result->responseStatus);
+        $this->assertEquals($result->location, 'https://example.com/?new=querystring');
+    }
+
+    public function testFullUrlCombinedQs()
+    {
+        $rule = [
+            "id" => "1",
+            "source" => "/",
+            "type" => "path",
+            "destination" => "https://example.com?new=querystring",
+            "httpStatus" => 302,
+            "active" => 1
+        ];
+        $result = $this->slimRedirect('https://localhost/?query=string', [$rule]);
+        $this->assertEquals($rule['httpStatus'], $result->responseStatus);
+        $this->assertEquals($result->location, 'https://example.com/?new=querystring&query=string');
+    }
+
     public function testOptionDisabled()
     {
         $rule = [
@@ -420,15 +450,8 @@ class SlimRedirectsTest extends TestCase
 
     public function testRedirectSimpleWildcardPath()
     {
-        $rules = [
-            [
-                "id" => 1,
-                "source" => "/notmatching/wild/*/card",
-                "type" => "path",
-                "destination" => "/wildcard/*",
-                "httpStatus" => 302,
-                "active" => 1
-            ],
+        // relative wildcard with token placement
+        $rule =
             [
                 "id" => 2,
                 "source" => "/wild/*/card",
@@ -436,11 +459,37 @@ class SlimRedirectsTest extends TestCase
                 "destination" => "/wildcard/*",
                 "httpStatus" => 302,
                 "active" => 1
-            ]
-        ];
-        $result = $this->slimRedirect('https://localhost/wild/test/card?query=string', $rules);
-        $this->assertEquals($rules[1]['httpStatus'], $result->responseStatus);
+            ];
+        $result = $this->slimRedirect('https://localhost/wild/test/card?query=string', [$rule]);
+        $this->assertEquals($rule['httpStatus'], $result->responseStatus);
         $this->assertEquals('https://localhost/wildcard/test?query=string', $result->location);
+
+        // wilcard with host and token placement
+        $rule = [
+            "id" => 1,
+            "source" => "/fullurl/wild/*/card",
+            "type" => "path",
+            "destination" => "https://example.com/wildcard/*",
+            "httpStatus" => 302,
+            "active" => 1
+        ];
+        $result = $this->slimRedirect('https://localhost/fullurl/wild/test/card?query=string', [$rule]);
+        $this->assertEquals($rule['httpStatus'], $result->responseStatus);
+        $this->assertEquals('https://example.com/wildcard/test?query=string', $result->location);
+
+
+        // wildcard with host and no wildcard placement
+        $rule = [
+            "id" => 3,
+            "source" => "/nowc/wild/*/card",
+            "type" => "path",
+            "destination" => "https://example.com/wildcard",
+            "httpStatus" => 302,
+            "active" => 1
+        ];
+        $result = $this->slimRedirect('https://localhost/nowc/wild/test/card?query=string', [$rule]);
+        $this->assertEquals($rule['httpStatus'], $result->responseStatus);
+        $this->assertEquals('https://example.com/wildcard?query=string', $result->location);
     }
 
     public function testNoCacheOn302()

@@ -2,6 +2,7 @@
 
 PSR7 Based Redirect library. Supports wildcard, regex, http to https redirection. Query string handling
 
+-Host redirection support
 -Trailing slash is ignored for request matching
 -Assumes http://localhost is http://localhost/
 -Querystring
