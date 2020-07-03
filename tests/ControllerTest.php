@@ -448,7 +448,7 @@ class SlimRedirectsTest extends TestCase
         $this->assertEquals($result->location, 'https://localhost/root/?new=querystring&query=string');
     }
 
-    public function testRedirectSimpleWildcardPath()
+    public function testRedirectWildcardPath()
     {
         // relative wildcard with token placement
         $rule =
@@ -488,6 +488,29 @@ class SlimRedirectsTest extends TestCase
             "active" => 1
         ];
         $result = $this->slimRedirect('https://localhost/nowc/wild/test/card?query=string', [$rule]);
+        $this->assertEquals($rule['httpStatus'], $result->responseStatus);
+        $this->assertEquals('https://example.com/wildcard?query=string', $result->location);
+
+        // wildcard skip when request doesnt match up until first *
+        $rules = [
+            [
+                "id" => 3,
+                "source" => "/nomatch/wild/*/card",
+                "type" => "path",
+                "destination" => "https://example.com/wildcard",
+                "httpStatus" => 302,
+                "active" => 1
+            ],
+            [
+                "id" => 4,
+                "source" => "/nowc/wild/*/card",
+                "type" => "path",
+                "destination" => "https://example.com/wildcard",
+                "httpStatus" => 302,
+                "active" => 1
+            ]
+        ];
+        $result = $this->slimRedirect('https://localhost/nowc/wild/test/card?query=string', $rules);
         $this->assertEquals($rule['httpStatus'], $result->responseStatus);
         $this->assertEquals('https://example.com/wildcard?query=string', $result->location);
     }

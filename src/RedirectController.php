@@ -319,6 +319,7 @@ class RedirectController
         $redirects = $this->getRedirectsFiltered(true);
         $uri = new RedirectUri($this->getRequest()->getUri(), $this->getResponse()->getStatusCode());
         $path = $uri->getPathNormalized();
+        $request = $this->getRequest();
         $noRedirectsOrExcluded = empty($redirects) || $this->isExcluded($path);
         $nullOrResponse = null;
 
@@ -356,16 +357,23 @@ class RedirectController
             $uri = $this->mergeRuleIntoUri($redirect, $uri);
 
             $typeHandlerCallback = $this->getTypeHandler($redirect->getType());
-            $uri = $typeHandlerCallback($uri, $redirect, $this->getRequest());
+            $uri = $typeHandlerCallback($uri, $redirect, $request);
 
             return $uri->toRedirectResponse();
         }
 
         $newPath = '';
+        $requestPath = $request->getUri()->getPath();
         foreach ($redirects as $sourcePath => $redirect) {
 
             $sourcePath = urldecode($sourcePath);
             if (strpos($sourcePath, '*') === false) {
+                continue;
+            }
+
+            // skip if request doesnt match wildcard up to the first *
+            $static = substr($sourcePath, 0, strpos($sourcePath, '*'));
+            if (strpos($requestPath, $static) === false) {
                 continue;
             }
 
@@ -385,7 +393,7 @@ class RedirectController
             $uri = $this->mergeRuleIntoUri($regexRule, $uri);
 
             $typeHandlerCallback = $this->getTypeHandler($redirect->getType());
-            $uri = $typeHandlerCallback($uri, $regexRule, $this->getRequest());
+            $uri = $typeHandlerCallback($uri, $regexRule, $request);
 
             // the second condition here prevents redirect loops as a result of wildcards.
             $newPath = $uri->getPath();
